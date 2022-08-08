@@ -6,7 +6,65 @@ defmodule Consent.Accounts do
   import Ecto.Query, warn: false
   alias Consent.Repo
 
-  alias Consent.Accounts.{User, UserToken, UserNotifier}
+  alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
+
+  def current_user!() do
+    Repo.one!(User)
+  end
+
+  def get_consent(%User{id: user_id}) do
+    Repo.one(
+      from c in Consent,
+        where: c.user_id == ^user_id,
+        order_by: [desc: c.consented_at]
+    )
+  end
+
+  def get_consent!(id), do: Repo.get!(Consent, id)
+
+  def create_consent(%User{} = user, attrs) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    expires = DateTime.add(now, 3600 * 24 * 365)
+
+    %Consent{
+      user_id: user.id,
+      consented_at: now,
+      expires_at: expires
+    }
+    |> Consent.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def update_consent(%User{} = user, attrs) do
+    case get_consent(user) do
+      nil ->
+        create_consent(user, attrs)
+
+      %Consent{} = consent ->
+        now = DateTime.utc_now() |> DateTime.truncate(:second)
+        expires = DateTime.add(now, 3600 * 24 * 365)
+
+        attrs = Map.merge(%{consented_at: now, expires_at: expires}, attrs)
+        update_consent(consent, attrs)
+    end
+  end
+
+  def update_consent(%Consent{} = consent, attrs) do
+    consent
+    |> Consent.changeset(attrs)
+    |> Repo.update()
+  end
+
+  def delete_consent(%User{id: user_id}) do
+    Repo.delete_all(
+      from c in Consent,
+        where: c.user_id == ^user_id
+    )
+  end
+
+  def change_consent(%Consent{} = consent, attrs \\ %{}) do
+    Consent.changeset(consent, attrs)
+  end
 
   ## Database getters
 

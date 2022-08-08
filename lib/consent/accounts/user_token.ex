@@ -1,7 +1,7 @@
 defmodule Consent.Accounts.UserToken do
   use Ecto.Schema
   import Ecto.Query
-  alias Consent.Accounts.UserToken
+  alias Consent.Accounts.{User, UserToken}
 
   @hash_algorithm :sha256
   @rand_size 32
@@ -13,11 +13,14 @@ defmodule Consent.Accounts.UserToken do
   @change_email_validity_in_days 7
   @session_validity_in_days 60
 
+  @primary_key {:id, Ecto.UUID, autogenerate: true}
+  @timestamps_opts [type: :utc_datetime]
+
   schema "users_tokens" do
     field :token, :binary
     field :context, :string
     field :sent_to, :string
-    belongs_to :user, Consent.Accounts.User
+    belongs_to :user, User, type: Ecto.UUID
 
     timestamps(updated_at: false)
   end
