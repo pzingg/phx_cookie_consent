@@ -9,23 +9,22 @@ defmodule Consent.Accounts.ConsentGroup do
     field :title, :string
     field :description, :string
     field :required, :boolean
-    field :toggle_by_default, :boolean
     field :consent_given, :boolean
   end
 
   # TODO: add validations
   def changeset(consent_group, attrs) do
     consent_group
-    |> cast(attrs, [:description, :title, :slug, :required, :toggle_by_default, :consent_given])
-    |> validate_required([:description, :title, :slug, :required, :toggle_by_default])
+    |> cast(attrs, [:description, :title, :slug, :required, :consent_given])
+    |> validate_required([:description, :title, :slug, :required])
   end
 
-  def set_consent(group) do
-    if is_nil(group.consent_given) do
-      %ConsentGroup{group | consent_given: group.required || group.toggle_by_default}
-    else
-      group
-    end
+  def set_consent(group, nil) do
+    %ConsentGroup{group | consent_given: true}
+  end
+
+  def set_consent(group, consented_groups) when is_list(consented_groups) do
+    %ConsentGroup{group | consent_given: group.required || Enum.member?(consented_groups, group.slug)}
   end
 
   def builtin_groups() do
@@ -35,7 +34,6 @@ defmodule Consent.Accounts.ConsentGroup do
          slug: "mandatory",
          title: "Mandatory cookies",
          required: true,
-         toggle_by_default: true,
          description: """
          These cookies are necessary for the website to function and cannot
          be switched off in our systems. They are usually only set in response
@@ -51,7 +49,6 @@ defmodule Consent.Accounts.ConsentGroup do
          slug: "functional",
          title: "Enhancement cookies",
          required: false,
-         toggle_by_default: false,
          description: """
          These cookies enable the website to provide enhanced functionality
          and personalisation. They may be set by us or by third party providers
@@ -64,7 +61,6 @@ defmodule Consent.Accounts.ConsentGroup do
          slug: "measurement",
          title: "Measurement cookies",
          required: false,
-         toggle_by_default: false,
          description: """
          These cookies allow us to count visits and traffic sources so we can
          measure and improve the performance of our site. They help us to know
@@ -80,7 +76,6 @@ defmodule Consent.Accounts.ConsentGroup do
          slug: "marketing",
          title: "Marketing cookies",
          required: false,
-         toggle_by_default: false,
          description: """
          These cookies may be set through our site by our advertising partners.
          They may be used by those companies to build a profile of your

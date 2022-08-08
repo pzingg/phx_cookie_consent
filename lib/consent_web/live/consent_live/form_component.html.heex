@@ -15,7 +15,8 @@
 
     <%= hidden_input f, :terms_version %>
     <%= label f, :terms_agreed, class: "mb-1" do %>
-    <%= checkbox f, :terms_agreed, checked: true, required: true %>
+      <%= checkbox f, :terms_agreed, checked: true, required: true %>
+      <span class="text-red-600 text-xs">required</span>
     <% end %>
 
     <h2 class="font-semibold text-2xl mb-1">This site uses cookies</h2>

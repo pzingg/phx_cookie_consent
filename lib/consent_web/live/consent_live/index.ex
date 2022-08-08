@@ -17,9 +17,20 @@ defmodule ConsentWeb.ConsentLive.Index do
 
   @impl true
   def handle_params(_params, _url, socket) do
+    user = Accounts.current_user!()
+
+    consented_groups =
+      case Accounts.get_consent(user) do
+        nil -> nil
+        consent -> consent.groups
+      end
+
     groups =
       ConsentGroup.builtin_groups()
-      |> Enum.map(fn {_, group} -> ConsentGroup.set_consent(group) |> Map.from_struct() end)
+      |> Enum.map(fn {_, group} ->
+        ConsentGroup.set_consent(group, consented_groups)
+        |> Map.from_struct()
+      end)
 
     changeset =
       ConsentForm.changeset(
