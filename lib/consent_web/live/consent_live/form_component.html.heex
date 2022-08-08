@@ -1,0 +1,61 @@
+<div>
+  <.form
+      let={f}
+      for={@changeset}
+      as="consent_params"
+      id="lv-consent-form"
+      phx-target="#lv-container"
+      phx-change="change"
+      phx-submit="save">
+    <h2 class="font-semibold text-2xl mb-1">Agree to terms and conditions</h2>
+    <p class="text-sm">
+      Please read the site's Terms and Conditions, version <%= input_value(f, :terms_version) %>.
+      By continuing to use this website, you consent to those terms.
+    </p>
+
+    <%= hidden_input f, :terms_version %>
+    <%= label f, :terms_agreed, class: "mb-1" do %>
+    <%= checkbox f, :terms_agreed, checked: true, required: true %>
+    <% end %>
+
+    <h2 class="font-semibold text-2xl mb-1">This site uses cookies</h2>
+
+    <p class="text-sm">
+      We use cookies on this site so we can provide you with personalised content,
+      ads and to analyse our website's traffic. By continuing to use this website,
+      you consent to cookies.
+    </p>
+    <div class="flex flex-col my-2">
+      <%= inputs_for f, :groups, fn group -> %>
+        <p><%= input_value(group, :title) %></p>
+          <%= hidden_input group, :slug %>
+          <%= label group, :consent_given, class: "mb-1" do %>
+          <%= if input_value(group, :required) do %>
+            <%= checkbox group, :consent_given, checked: true, required: true %>
+            <%= input_value(group, :name) %>
+            <span class="text-red-600 text-xs">required</span>
+          <% else %>
+            <%= checkbox group, :consent_given %>
+            <%= input_value(group, :name) %>
+          <% end %>
+          <% end %>
+      <% end %>
+    </div>
+
+    <div class="flex flex-row items-center">
+      <input
+        type="submit"
+        name="submit"
+        class="bg-blue-500 hover:bg-blue-600 rounded text-center text-white px-6 py-2 focus:outline-none cursor-pointer"
+        value="Accept"/>
+      <button
+        id="hide-consent-form-button"
+        type="button"
+        phx-click="hide"
+        class="ml-4 text-gray-800 text-sm focus:outline-none cursor-pointer bg-white"
+        type="button">
+        Hide
+      </button>
+    </div>
+  </.form>
+</div>
