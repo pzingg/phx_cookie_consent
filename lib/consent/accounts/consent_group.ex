@@ -24,7 +24,10 @@ defmodule Consent.Accounts.ConsentGroup do
   end
 
   def set_consent(group, consented_groups) when is_list(consented_groups) do
-    %ConsentGroup{group | consent_given: group.required || Enum.member?(consented_groups, group.slug)}
+    %ConsentGroup{
+      group
+      | consent_given: group.required || Enum.member?(consented_groups, group.slug)
+    }
   end
 
   def builtin_groups() do
