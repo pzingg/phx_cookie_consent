@@ -11,6 +11,7 @@ defmodule ConsentWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :fetch_current_user
+    plug :fetch_cookie_consent
   end
 
   pipeline :api do
@@ -20,6 +21,7 @@ defmodule ConsentWeb.Router do
   scope "/", ConsentWeb do
     pipe_through :browser
 
+    post "/update_consent", ConsentController, :update, as: :consent_update
     get "/", PageController, :index
   end
 
@@ -66,8 +68,8 @@ defmodule ConsentWeb.Router do
   scope "/", ConsentWeb do
     pipe_through [:browser]
 
-    live_session :authenticated,
-      on_mount: {ConsentWeb.UserAuth, :ensure_authenticated} do
+    live_session :consent,
+      on_mount: {ConsentWeb.UserAuth, :current_user} do
       live "/consent", ConsentLive.Index, :index
     end
 

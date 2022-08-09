@@ -15,17 +15,14 @@ defmodule ConsentWeb.UserAuth do
   @remember_me_cookie "_consent_web_user_remember_me"
   @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]
 
-  def on_mount(:current_user, _params, session, socket) do
-    case session do
-      %{"user_token" => user_token} ->
-        {:cont,
-         LiveView.assign_new(socket, :current_user, fn ->
-           Accounts.get_user_by_session_token(user_token)
-         end)}
+  @consent_cookie "_consent_web_cookie_consent"
+  @consent_options [sign: true, max_age: @max_age, same_site: "Lax"]
 
-      %{} ->
-        {:cont, LiveView.assign(socket, :current_user, nil)}
-    end
+  def on_mount(:current_user, _params, session, socket) do
+    {:cont,
+     socket
+     |> assign_current_user(session)
+     |> assign_cookie_consent(session)}
   end
 
   def on_mount(:ensure_authenticated, _params, session, socket) do
@@ -37,13 +34,79 @@ defmodule ConsentWeb.UserAuth do
           end)
 
         %Accounts.User{} = new_socket.assigns.current_user
-        {:cont, new_socket}
+        {:cont, assign_cookie_consent(new_socket, session)}
 
       %{} ->
         {:halt, redirect_require_login(socket)}
     end
   rescue
     Ecto.NoResultsError -> {:halt, redirect_require_login(socket)}
+  end
+
+  def write_consent_cookie(conn, cookie_consent) do
+    conn
+    |> put_session(:cookie_consent, cookie_consent)
+    |> put_resp_cookie(@consent_cookie, cookie_consent, @consent_options)
+  end
+
+  @doc """
+  Picks up the user's cookie consent, or loads one from
+  session cookies. Can assign nil, meaning a cookie modal
+  should be presented.
+
+  This plug must be loaded AFTER `:fetch_current_user`.
+  """
+  def fetch_cookie_consent(conn, _opts) do
+    user = conn.assigns[:current_user]
+    consent = user && Accounts.get_consent(user)
+
+    cookie_consent =
+      if is_nil(consent) do
+        conn = fetch_cookies(conn, signed: [@consent_cookie])
+
+        case conn.cookies[@consent_cookie] do
+          nil ->
+            case Accounts.create_anonymous_consent() do
+              {:ok, consent} -> consent
+              _ -> nil
+            end
+
+          consent ->
+            consent
+        end
+      end
+
+    Logger.info("fetch_cookie_consent: #{inspect(cookie_consent)}")
+    put_session(conn, :cookie_consent, cookie_consent)
+  end
+
+  defp assign_cookie_consent(socket, session) do
+    cookie_consent =
+      case session["cookie_consent"] do
+        nil ->
+          case Accounts.create_anonymous_consent() do
+            {:ok, consent} -> consent
+            _ -> nil
+          end
+
+        consent ->
+          consent
+      end
+
+    Logger.info("assign_cookie_consent: #{cookie_consent.id}")
+    LiveView.assign(socket, :cookie_consent, cookie_consent)
+  end
+
+  defp assign_current_user(socket, session) do
+    case session do
+      %{"user_token" => user_token} ->
+        LiveView.assign_new(socket, :current_user, fn ->
+          Accounts.get_user_by_session_token!(user_token)
+        end)
+
+      %{} ->
+        LiveView.assign(socket, :current_user, nil)
+    end
   end
 
   defp redirect_require_login(socket) do
@@ -100,9 +163,12 @@ defmodule ConsentWeb.UserAuth do
   #     end
   #
   defp renew_session(conn) do
+    cookie_consent = get_session(conn, :cookie_consent)
+
     conn
     |> configure_session(renew: true)
     |> clear_session()
+    |> put_session(:cookie_consent, cookie_consent)
   end
 
   @doc """
@@ -131,7 +197,6 @@ defmodule ConsentWeb.UserAuth do
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
     user = user_token && Accounts.get_user_by_session_token(user_token)
-    Logger.info("fetch_current_user #{inspect(user)}")
     assign(conn, :current_user, user)
   end
 

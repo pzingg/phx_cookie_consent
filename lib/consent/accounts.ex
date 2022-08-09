@@ -2,10 +2,11 @@ defmodule Consent.Accounts do
   @moduledoc """
   The Accounts context.
   """
-
   import Ecto.Query, warn: false
-  alias Consent.Repo
 
+  require Logger
+
+  alias Consent.Repo
   alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
 
   def get_consent(%User{id: user_id}) do
@@ -27,8 +28,34 @@ defmodule Consent.Accounts do
       consented_at: now,
       expires_at: expires
     }
-    |> Consent.changeset(attrs)
+    |> Consent.user_changeset(attrs)
     |> Repo.insert()
+  end
+
+  def create_anonymous_consent(attrs \\ %{}) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    expires = DateTime.add(now, 3600 * 24 * 365)
+
+    validated =
+      %Consent{
+        id: Ecto.UUID.autogenerate(),
+        user_id: nil,
+        consented_at: now,
+        expires_at: expires,
+        inserted_at: now,
+        updated_at: now
+      }
+      |> Consent.anonymous_changeset(attrs)
+      |> Ecto.Changeset.apply_action(:new)
+
+    case validated do
+      {:ok, consent} ->
+        {:ok, consent}
+
+      {:error, changeset} ->
+        Logger.error("create_anonymous_consent failed #{inspect(changeset.errors)}")
+        {:error, changeset}
+    end
   end
 
   def update_consent(%User{} = user, attrs) do
@@ -47,8 +74,27 @@ defmodule Consent.Accounts do
 
   def update_consent(%Consent{} = consent, attrs) do
     consent
-    |> Consent.changeset(attrs)
+    |> Consent.user_changeset(attrs)
     |> Repo.update()
+  end
+
+  def update_anonymous_consent(%Consent{} = consent, attrs) do
+    now = DateTime.utc_now() |> DateTime.truncate(:second)
+    expires = DateTime.add(now, 3600 * 24 * 365)
+
+    validated =
+      %Consent{consent | consented_at: now, expires_at: expires, updated_at: now}
+      |> Consent.anonymous_changeset(attrs)
+      |> Ecto.Changeset.apply_action(:update)
+
+    case validated do
+      {:ok, consent} ->
+        {:ok, consent}
+
+      {:error, changeset} ->
+        Logger.error("update_anonymous_consent failed #{inspect(changeset.errors)}")
+        {:error, changeset}
+    end
   end
 
   def delete_consent(%User{id: user_id}) do
@@ -56,10 +102,6 @@ defmodule Consent.Accounts do
       from c in Consent,
         where: c.user_id == ^user_id
     )
-  end
-
-  def change_consent(%Consent{} = consent, attrs \\ %{}) do
-    Consent.changeset(consent, attrs)
   end
 
   ## Database getters
