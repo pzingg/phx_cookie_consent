@@ -21,8 +21,10 @@ defmodule ConsentWeb.Router do
   scope "/", ConsentWeb do
     pipe_through :browser
 
-    post "/update_consent", ConsentController, :update, as: :consent_update
     get "/", PageController, :index
+
+    get "/consent/alpine", ConsentController, :alpine_modal, as: :consent_modal
+    post "/consent/update", ConsentController, :update, as: :consent_update
   end
 
   # Other scopes may use custom stacks.

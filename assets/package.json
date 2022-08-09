@@ -6,7 +6,7 @@
     "deploy": "NODE_ENV=production postcss css/app.css -o ../priv/static/assets/assets.css"
   },
   "dependencies": {
-    "alpinejs": "^3.5.0"
+    "alpinejs": "^3.10.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.3.1",

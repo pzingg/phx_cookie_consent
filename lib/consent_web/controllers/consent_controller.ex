@@ -23,4 +23,8 @@ defmodule ConsentWeb.ConsentController do
         |> halt()
     end
   end
+
+  def alpine_modal(conn, _params) do
+    render(conn, "alpine_modal.html")
+  end
 end
