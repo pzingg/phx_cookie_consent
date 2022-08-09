@@ -9,25 +9,24 @@ defmodule Consent.Accounts.ConsentGroup do
     field :title, :string
     field :description, :string
     field :required, :boolean
+    field :show, :boolean
     field :consent_given, :boolean
   end
 
   # TODO: add validations
   def changeset(consent_group, attrs) do
     consent_group
-    |> cast(attrs, [:description, :title, :slug, :required, :consent_given])
-    |> validate_required([:description, :title, :slug, :required])
+    |> cast(attrs, [:slug, :title, :description, :required, :show, :consent_given])
+    |> validate_required([:slug, :title, :description, :required])
   end
 
   def set_consent(group, nil) do
-    %ConsentGroup{group | consent_given: true}
+    %ConsentGroup{group | show: false, consent_given: true}
   end
 
   def set_consent(group, consented_groups) when is_list(consented_groups) do
-    %ConsentGroup{
-      group
-      | consent_given: group.required || Enum.member?(consented_groups, group.slug)
-    }
+    consented = group.required || Enum.member?(consented_groups, group.slug)
+    %ConsentGroup{group | show: false, consent_given: consented}
   end
 
   def builtin_groups() do

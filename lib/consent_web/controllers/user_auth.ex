@@ -2,6 +2,9 @@ defmodule ConsentWeb.UserAuth do
   import Plug.Conn
   import Phoenix.Controller
 
+  require Logger
+
+  alias Phoenix.LiveView
   alias Consent.Accounts
   alias ConsentWeb.Router.Helpers, as: Routes
 
@@ -11,6 +14,43 @@ defmodule ConsentWeb.UserAuth do
   @max_age 60 * 60 * 24 * 60
   @remember_me_cookie "_consent_web_user_remember_me"
   @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]
+
+  def on_mount(:current_user, _params, session, socket) do
+    case session do
+      %{"user_token" => user_token} ->
+        {:cont,
+         LiveView.assign_new(socket, :current_user, fn ->
+           Accounts.get_user_by_session_token(user_token)
+         end)}
+
+      %{} ->
+        {:cont, LiveView.assign(socket, :current_user, nil)}
+    end
+  end
+
+  def on_mount(:ensure_authenticated, _params, session, socket) do
+    case session do
+      %{"user_token" => user_token} ->
+        new_socket =
+          LiveView.assign_new(socket, :current_user, fn ->
+            Accounts.get_user_by_session_token!(user_token)
+          end)
+
+        %Accounts.User{} = new_socket.assigns.current_user
+        {:cont, new_socket}
+
+      %{} ->
+        {:halt, redirect_require_login(socket)}
+    end
+  rescue
+    Ecto.NoResultsError -> {:halt, redirect_require_login(socket)}
+  end
+
+  defp redirect_require_login(socket) do
+    socket
+    |> LiveView.put_flash(:error, "Please sign in")
+    |> LiveView.redirect(to: Routes.user_session_path(socket, :new))
+  end
 
   @doc """
   Logs the user in.
@@ -91,6 +131,7 @@ defmodule ConsentWeb.UserAuth do
   def fetch_current_user(conn, _opts) do
     {user_token, conn} = ensure_user_token(conn)
     user = user_token && Accounts.get_user_by_session_token(user_token)
+    Logger.info("fetch_current_user #{inspect(user)}")
     assign(conn, :current_user, user)
   end
 

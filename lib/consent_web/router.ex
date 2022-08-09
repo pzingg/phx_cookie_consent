@@ -66,7 +66,10 @@ defmodule ConsentWeb.Router do
   scope "/", ConsentWeb do
     pipe_through [:browser]
 
-    live "/consent", ConsentLive.Index, :index
+    live_session :authenticated,
+      on_mount: {ConsentWeb.UserAuth, :ensure_authenticated} do
+      live "/consent", ConsentLive.Index, :index
+    end
 
     delete "/users/log_out", UserSessionController, :delete
     get "/users/confirm", UserConfirmationController, :new

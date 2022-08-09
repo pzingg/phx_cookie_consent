@@ -8,10 +8,6 @@ defmodule Consent.Accounts do
 
   alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
 
-  def current_user!() do
-    Repo.one!(User)
-  end
-
   def get_consent(%User{id: user_id}) do
     Repo.one(
       from c in Consent,
@@ -117,6 +113,8 @@ defmodule Consent.Accounts do
 
   """
   def get_user!(id), do: Repo.get!(User, id)
+
+  def get_user(id), do: Repo.get(User, id)
 
   ## User registration
 
@@ -287,6 +285,11 @@ defmodule Consent.Accounts do
   @doc """
   Gets the user with the given signed token.
   """
+  def get_user_by_session_token!(token) do
+    {:ok, query} = UserToken.verify_session_token_query(token)
+    Repo.one!(query)
+  end
+
   def get_user_by_session_token(token) do
     {:ok, query} = UserToken.verify_session_token_query(token)
     Repo.one(query)

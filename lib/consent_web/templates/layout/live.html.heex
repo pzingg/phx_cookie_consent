@@ -1,4 +1,4 @@
-<main class="container">
+<main role="main" class="container max-w-3xl px-4 mx-auto">
   <p class="alert alert-info" role="alert"
     phx-click="lv:clear-flash"
     phx-value-key="info"><%= live_flash(@flash, :info) %></p>
@@ -6,6 +6,8 @@
   <p class="alert alert-danger" role="alert"
     phx-click="lv:clear-flash"
     phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+
+  <.live_component module={ConsentWeb.LayoutComponent} id="layout" />
 
   <%= @inner_content %>
 </main>

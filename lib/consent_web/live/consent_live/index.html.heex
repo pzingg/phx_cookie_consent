@@ -1,11 +1,9 @@
-<div id="lv-container" class="fixed bottom-0 md:right-0" style="z-index: 999;">
-  <.live_component module={ConsentWeb.ConsentLive.FormComponent}
-    id="lv-consent-form"
-    changeset={@changeset} />
+<div id="consent-live-view" class="h-40 min-h-40">
+  <h2 class="text-2xl">Consent Page</h2>
   <button
     id="manage-cookies-button"
     type="button"
-    class="bg-white rounded-lg mr-2 mb-2 p-2 float-right focus:outline-none cursor-pointer"
+    class="px-6 py-2 text-center text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 focus:outline-none"
     phx-click="show">
     Manage Cookies
   </button>

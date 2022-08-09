@@ -3,60 +3,57 @@
       let={f}
       for={@changeset}
       as="consent_params"
-      id="lv-consent-form"
-      phx-target="#lv-container"
-      phx-change="change"
+      id="consent-form"
+      phx-target="#consent-live-view"
       phx-submit="save">
-    <h2 class="font-semibold text-2xl mb-1">Agree to terms and conditions</h2>
-    <p class="text-sm">
-      Please read the site's Terms and Conditions, version <%= input_value(f, :terms_version) %>.
-      By continuing to use this website, you consent to those terms.
-    </p>
+    <div class="pt-2 pb-2 border-t border-gray-200">
+      <h3 class="text-lg font-medium leading-6 text-gray-900">This site uses cookies</h3>
+      <div class="pb-2 mt-4 text-sm">
+        We use cookies on this site so we can provide you with personalised content,
+        ads and to analyze our website's traffic.
+        Check the boxes below to agree to our terms and conditions and
+        to allow or restrict the cookies being used.
+      </div>
+    </div>
 
-    <%= hidden_input f, :terms_version %>
-    <%= label f, :terms_agreed, class: "mb-1" do %>
-      <%= checkbox f, :terms_agreed, checked: true, required: true %>
-      <span class="text-red-600 text-xs">required</span>
-    <% end %>
+    <div class="pt-2 pb-2 border-t border-gray-200">
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <h3 class="text-lg font-medium leading-6 text-gray-900">Terms and conditions</h3>
+        <div class="mt-3 sm:mt-0 sm:ml-4">
+          <%= hidden_input f, :terms_version %>
+          <label class="block mb-1 text-gray-700">
+            <span class="mr-2 text-red-600 ">Required</span>
+            <%= checkbox f, :terms_agreed, checked: true, required: true %>
+          </label>
+        </div>
+      </div>
+      <div class="mt-4 text-sm">
+        Please read the site's Terms and Conditions, version <%= input_value(f, :terms_version) %>.
+        By continuing to use this website, you consent to those terms.
+      </div>
+    </div>
 
-    <h2 class="font-semibold text-2xl mb-1">This site uses cookies</h2>
-
-    <p class="text-sm">
-      We use cookies on this site so we can provide you with personalised content,
-      ads and to analyse our website's traffic. By continuing to use this website,
-      you consent to cookies.
-    </p>
-    <div class="flex flex-col my-2">
-      <%= inputs_for f, :groups, fn group -> %>
-        <p><%= input_value(group, :title) %></p>
+  <%= inputs_for f, :groups, fn group -> %>
+    <div class="pt-2 pb-2 border-t border-gray-200">
+      <div class="sm:flex sm:items-center sm:justify-between">
+        <h3 phx-target="#consent-live-view" phx-click="toggle_group" phx-value-slug={input_value(group, :slug)} class="px-6 py-2 text-lg font-medium leading-6 text-gray-900 border border-blue-300 rounded"><%= input_value(group, :title) %></h3>
+        <div class="mt-3 sm:mt-0 sm:ml-4">
           <%= hidden_input group, :slug %>
-          <%= label group, :consent_given, class: "mb-1" do %>
+          <label class="block mb-1">
           <%= if input_value(group, :required) do %>
+            <span class="mr-2 text-red-600">Required</span>
             <%= checkbox group, :consent_given, checked: true, required: true %>
-            <%= input_value(group, :name) %>
-            <span class="text-red-600 text-xs">required</span>
           <% else %>
+            <span class="mr-2">Allow?</span>
             <%= checkbox group, :consent_given %>
-            <%= input_value(group, :name) %>
           <% end %>
-          <% end %>
+          </label>
+        </div>
+      </div>
+      <%= if input_value(group, :show) do %>
+      <div class="mt-4 text-sm"><%= input_value(group, :description) %></div>
       <% end %>
     </div>
-
-    <div class="flex flex-row items-center">
-      <input
-        type="submit"
-        name="submit"
-        class="bg-blue-500 hover:bg-blue-600 rounded text-center text-white px-6 py-2 focus:outline-none cursor-pointer"
-        value="Accept"/>
-      <button
-        id="hide-consent-form-button"
-        type="button"
-        phx-click="hide"
-        class="ml-4 text-gray-800 text-sm focus:outline-none cursor-pointer bg-white"
-        type="button">
-        Hide
-      </button>
-    </div>
+  <% end %>
   </.form>
 </div>

@@ -86,7 +86,9 @@ defmodule ConsentWeb do
       import Phoenix.View
 
       import ConsentWeb.ErrorHelpers
+      import ConsentWeb.LiveHelpers
       alias ConsentWeb.Router.Helpers, as: Routes
+      alias Phoenix.LiveView.JS
     end
   end
 
