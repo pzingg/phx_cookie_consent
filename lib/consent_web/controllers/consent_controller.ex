@@ -39,14 +39,13 @@ defmodule ConsentWeb.ConsentController do
       end)
       |> Enum.with_index()
 
-    form_action = Routes.consent_update_path(conn, :update)
-    csrf_token = Phoenix.HTML.Tag.csrf_token_value(form_action)
-
     render(conn, "alpine_modal.html",
-      form_action: form_action,
-      csrf_token: csrf_token,
+      form_action: Routes.consent_update_path(conn, :update),
       terms_version: @current_terms_version,
-      groups_with_index: groups_with_index
+      groups_with_index: groups_with_index,
+      return_to: "/",
+      show_event: "cmshow",
+      hide_event: "cmhide"
     )
   end
 end
