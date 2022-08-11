@@ -29,6 +29,6 @@ defmodule ConsentWeb.ConsentHelpers do
   end
 
   defp update_consent(_consent, user, consent_params) do
-    Accounts.update_consent(user, consent_params)
+    Accounts.update_user_consent(user, consent_params)
   end
 end

@@ -6,7 +6,7 @@ defmodule ConsentWeb.UserAuth do
 
   alias Phoenix.LiveView
   alias Consent.Accounts
-  alias Consent.Accounts.Consent
+  alias Consent.Accounts.{Consent, User}
   alias ConsentWeb.Router.Helpers, as: Routes
 
   # Make the remember me cookie valid for 60 days.
@@ -62,30 +62,103 @@ defmodule ConsentWeb.UserAuth do
   session cookies. Can assign nil, meaning a cookie modal
   should be presented.
 
-  This plug must be loaded AFTER `:fetch_current_user`.
+  This plug should be the LAST in the pipeline, definitely
+  after :fetch_current_user.
   """
   def fetch_cookie_consent(conn, _opts) do
-    user = conn.assigns[:current_user]
-    consent = user && Accounts.get_consent(user)
+    consent_cookie_logic(conn, conn.assigns[:current_user])
+  end
 
-    cookie_consent =
-      if is_nil(consent) do
-        conn = fetch_cookies(conn, signed: [@consent_cookie])
+  # Not logged in case
+  def consent_cookie_logic(conn, nil) do
+    conn = fetch_cookies(conn, signed: [@consent_cookie])
 
-        case conn.cookies[@consent_cookie] do
-          nil ->
-            case Accounts.create_anonymous_consent() do
-              {:ok, consent} -> consent
-              _ -> nil
-            end
+    case conn.cookies[@consent_cookie] do
+      nil ->
+        case Accounts.create_anonymous_consent() do
+          {:ok, consent} ->
+            conn
+            |> put_session(:cookie_consent, consent)
+            |> put_session(:show_cookie_modal, true)
 
-          consent ->
-            consent
+          _ ->
+            raise "Internal error creating anonymous consent"
         end
+
+      consent ->
+        put_session(conn, :cookie_consent, consent)
+    end
+  end
+
+  # Logged in case
+  def consent_cookie_logic(conn, %User{id: user_id} = user) do
+    conn = fetch_cookies(conn, signed: [@consent_cookie])
+    cookie_consent = conn.cookies[@consent_cookie]
+    {status, consent} = Accounts.get_user_consent(user)
+
+    {db_action, cookie_action, show_modal} =
+      case {status, consent, cookie_consent} do
+        {_, nil, nil} ->
+          {:new, :assign, true}
+
+        {_, nil, %Consent{user_id: ^user_id}} ->
+          {:assign, :ok, false}
+
+        {_, nil, %Consent{user_id: nil}} ->
+          {:assign, :assign, false}
+
+        {_, %Consent{consented_at: db_time},
+         %Consent{user_id: ^user_id, consented_at: cookie_time}} ->
+          case DateTime.diff(cookie_time, db_time) do
+            :gt -> {:assign, :ok, false}
+            _ -> {:ok, :assign, false}
+          end
+
+        {:ok, _, nil} ->
+          {:ok, :assign, false}
+
+        {:expired, _, nil} ->
+          {:ok, :assign, true}
+
+        {:ok, _, _other_user} ->
+          {:ok, :ok, false}
+
+        {:expired, _, _other_user} ->
+          {:ok, :ok, true}
       end
 
-    Logger.info("fetch_cookie_consent: #{inspect(cookie_consent)}")
-    put_session(conn, :cookie_consent, cookie_consent)
+    db_results =
+      case db_action do
+        :ok ->
+          {:ok, consent}
+
+        :new ->
+          Accounts.create_user_consent(user, %{})
+
+        :assign ->
+          Accounts.assign_user_consent(user, consent)
+      end
+
+    consent =
+      case db_results do
+        {:ok, consent} -> consent
+        {:error, reason} -> raise "Whoa there db #{reason}"
+      end
+
+    conn =
+      case cookie_action do
+        :assign ->
+          write_consent_cookie(conn, consent)
+
+        :ok ->
+          put_session(conn, :cookie_consent, consent)
+      end
+
+    if show_modal do
+      put_session(conn, :show_cookie_modal, true)
+    else
+      conn
+    end
   end
 
   defp assign_cookie_consent(socket, session) do

@@ -9,17 +9,27 @@ defmodule Consent.Accounts do
   alias Consent.Repo
   alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
 
-  def get_consent(%User{id: user_id}) do
-    Repo.one(
-      from c in Consent,
-        where: c.user_id == ^user_id,
-        order_by: [desc: c.consented_at]
-    )
-  end
-
   def get_consent!(id), do: Repo.get!(Consent, id)
 
-  def create_consent(%User{} = user, attrs) do
+  def get_user_consent(%User{id: user_id}) do
+    case Repo.one(
+           from c in Consent,
+             where: c.user_id == ^user_id,
+             order_by: [desc: c.consented_at]
+         ) do
+      nil ->
+        {:not_found, nil}
+
+      %Consent{expires_at: expires_at} = consent ->
+        if DateTime.diff(expires_at, DateTime.utc_now()) == :gt do
+          {:ok, consent}
+        else
+          {:expired, consent}
+        end
+    end
+  end
+
+  def create_user_consent(%User{} = user, attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
@@ -30,6 +40,12 @@ defmodule Consent.Accounts do
     }
     |> Consent.user_changeset(attrs)
     |> Repo.insert()
+  end
+
+  def assign_user_consent(%User{id: user_id}, %Consent{} = consent) do
+    consent
+    |> Consent.user_changeset(%{user_id: user_id})
+    |> Repo.insert_or_update()
   end
 
   def create_anonymous_consent(attrs \\ %{}) do
@@ -58,12 +74,12 @@ defmodule Consent.Accounts do
     end
   end
 
-  def update_consent(%User{} = user, attrs) do
-    case get_consent(user) do
-      nil ->
-        create_consent(user, attrs)
+  def update_user_consent(%User{} = user, attrs) do
+    case get_user_consent(user) do
+      {_, nil} ->
+        create_user_consent(user, attrs)
 
-      %Consent{} = consent ->
+      {_, %Consent{} = consent} ->
         now = DateTime.utc_now() |> DateTime.truncate(:second)
         expires = DateTime.add(now, 3600 * 24 * 365)
 
@@ -97,7 +113,7 @@ defmodule Consent.Accounts do
     end
   end
 
-  def delete_consent(%User{id: user_id}) do
+  def delete_user_consent(%User{id: user_id}) do
     Repo.delete_all(
       from c in Consent,
         where: c.user_id == ^user_id
