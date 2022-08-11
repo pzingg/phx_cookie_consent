@@ -1,10 +1,34 @@
 defmodule ConsentWeb.ConsentController do
   use ConsentWeb, :controller
 
-  alias Consent.Accounts.ConsentGroup
+  alias Consent.Dialog.{Header, Terms, Group}
   alias ConsentWeb.{ConsentHelpers, UserAuth}
 
-  @current_terms_version "1.1.0"
+  def edit(conn, _params) do
+    cookie_consent = get_session(conn, :cookie_consent)
+    consented_groups = cookie_consent.groups
+
+    groups_with_index =
+      Group.builtins()
+      |> Enum.map(fn {_slug, group} ->
+        Group.set_consent(group, consented_groups)
+        |> Map.from_struct()
+      end)
+      |> Enum.with_index()
+
+    # cookie_consent.terms may be nil
+    version = cookie_consent.terms
+    terms = Terms.builtin() |> Terms.set_consent(version) |> Map.from_struct()
+
+    render(conn, "edit.html",
+      form_action: Routes.consent_path(conn, :update),
+      header: Header.builtin(),
+      terms: terms,
+      groups_with_index: groups_with_index,
+      return_to: "/",
+      show_event: "consent-modal-show"
+    )
+  end
 
   # We come here to update the cookie_consent cookie
   def update(conn, %{"consent_params" => consent_params}) do
@@ -25,27 +49,5 @@ defmodule ConsentWeb.ConsentController do
         |> redirect(to: "/")
         |> halt()
     end
-  end
-
-  def alpine_modal(conn, _params) do
-    cookie_consent = get_session(conn, :cookie_consent)
-    consented_groups = cookie_consent.groups
-
-    groups_with_index =
-      ConsentGroup.builtin_groups()
-      |> Enum.map(fn {_slug, group} ->
-        ConsentGroup.set_consent(group, consented_groups)
-        |> Map.from_struct()
-      end)
-      |> Enum.with_index()
-
-    render(conn, "alpine_modal.html",
-      form_action: Routes.consent_update_path(conn, :update),
-      terms_version: @current_terms_version,
-      groups_with_index: groups_with_index,
-      return_to: "/",
-      show_event: "cmshow",
-      hide_event: "cmhide"
-    )
   end
 end

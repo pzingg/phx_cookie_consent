@@ -1,10 +1,9 @@
-<.consent_modal
+<ConsentComponent.modal
   form_action={@form_action}
-  terms_version={@terms_version}
+  header={@header}
+  terms={@terms}
   groups_with_index={@groups_with_index}
-  return_to={@return_to}
-  show_event={@show_event}
-  hide_event={@hide_event} />
+  return_to={@return_to} />
 
 <button x-data="{}" id="manage-cookies-button" type="button"
   @click={"$dispatch('#{@show_event}')"}

@@ -2,18 +2,17 @@ defmodule Consent.Accounts.ConsentForm do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Consent.Accounts.ConsentGroup
+  alias Consent.Dialog.{Group, Terms}
 
   embedded_schema do
-    field :terms_version, :string
-    field :terms_agreed, :boolean
-    embeds_many :groups, ConsentGroup
+    embeds_one :terms, Terms
+    embeds_many :groups, Group
   end
 
   def changeset(form, attrs) do
     form
-    |> cast(attrs, [:terms_version, :terms_agreed])
+    |> cast(attrs, [])
+    |> cast_embed(:terms)
     |> cast_embed(:groups)
-    |> validate_required([:terms_version, :terms_agreed])
   end
 end

@@ -6,17 +6,19 @@ defmodule ConsentWeb.UserAuth do
 
   alias Phoenix.LiveView
   alias Consent.Accounts
+  alias Consent.Accounts.Consent
   alias ConsentWeb.Router.Helpers, as: Routes
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
   # the token expiry itself in UserToken.
-  @max_age 60 * 60 * 24 * 60
+  @remember_me_max_age 3600 * 24 * 60
   @remember_me_cookie "_consent_web_user_remember_me"
-  @remember_me_options [sign: true, max_age: @max_age, same_site: "Lax"]
+  @remember_me_options [sign: true, max_age: @remember_me_max_age, same_site: "Lax"]
 
+  @consent_max_age 3600 * 24 * 60
   @consent_cookie "_consent_web_cookie_consent"
-  @consent_options [sign: true, max_age: @max_age, same_site: "Lax"]
+  @consent_options [sign: true, max_age: @consent_max_age, same_site: "Lax"]
 
   def on_mount(:current_user, _params, session, socket) do
     {:cont,
@@ -43,10 +45,16 @@ defmodule ConsentWeb.UserAuth do
     Ecto.NoResultsError -> {:halt, redirect_require_login(socket)}
   end
 
-  def write_consent_cookie(conn, cookie_consent) do
+  def write_consent_cookie(conn, %Consent{} = cookie_consent) do
+    max_age = Consent.expires_from_now(cookie_consent)
+
     conn
     |> put_session(:cookie_consent, cookie_consent)
-    |> put_resp_cookie(@consent_cookie, cookie_consent, @consent_options)
+    |> put_resp_cookie(
+      @consent_cookie,
+      cookie_consent,
+      Keyword.put(@consent_options, :max_age, max_age)
+    )
   end
 
   @doc """

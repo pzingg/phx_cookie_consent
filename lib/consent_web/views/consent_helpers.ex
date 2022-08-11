@@ -5,7 +5,7 @@ defmodule ConsentWeb.ConsentHelpers do
 
   alias Consent.Accounts
 
-  def handle_consent_form_data(consent, user, %{"groups" => groups, "terms_version" => terms}) do
+  def handle_consent_form_data(consent, user, %{"groups" => groups, "terms" => terms}) do
     groups =
       groups
       |> Enum.into([])
@@ -14,6 +14,12 @@ defmodule ConsentWeb.ConsentHelpers do
         _ -> nil
       end)
       |> Enum.filter(fn slug -> !is_nil(slug) end)
+
+    terms =
+      case terms do
+        %{"consent_given" => "true", "version" => version} -> version
+        _ -> nil
+      end
 
     update_consent(consent, user, %{terms: terms, groups: groups})
   end
