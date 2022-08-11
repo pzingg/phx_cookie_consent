@@ -21,10 +21,16 @@ defmodule ConsentWeb.Router do
   scope "/", ConsentWeb do
     pipe_through :browser
 
+    live_session :current_user, on_mount: {ConsentWeb.UserAuth, :current_user} do
+      live "/test_page", PageLive.Index, :index
+    end
+
     get "/", PageController, :index
 
-    get "/consent/alpine", ConsentController, :alpine_modal, as: :consent_modal
-    post "/consent/update", ConsentController, :update, as: :consent_update
+    get "/consent", ConsentController, :edit_summary
+    post "/consent", ConsentController, :update_summary
+    get "/consent/more", ConsentController, :edit_details
+    post "/consent/more", ConsentController, :update_details
   end
 
   # Other scopes may use custom stacks.
@@ -68,12 +74,7 @@ defmodule ConsentWeb.Router do
   end
 
   scope "/", ConsentWeb do
-    pipe_through [:browser]
-
-    live_session :consent,
-      on_mount: {ConsentWeb.UserAuth, :current_user} do
-      live "/consent", ConsentLive.Index, :index
-    end
+    pipe_through :browser
 
     delete "/users/log_out", UserSessionController, :delete
     get "/users/confirm", UserConfirmationController, :new

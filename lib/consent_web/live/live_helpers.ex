@@ -89,6 +89,9 @@ defmodule ConsentWeb.LiveHelpers do
     |> JS.dispatch("click", to: "##{id} [data-modal-return]")
   end
 
+  @doc """
+  Pure LV modal component (from live_beats).
+  """
   def modal(assigns) do
     assigns =
       assigns

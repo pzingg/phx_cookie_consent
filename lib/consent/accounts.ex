@@ -9,7 +9,9 @@ defmodule Consent.Accounts do
   alias Consent.Repo
   alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
 
-  def get_consent(%User{id: user_id}) do
+  def get_consent!(id), do: Repo.get!(Consent, id)
+
+  def get_user_consent(%User{id: user_id}) do
     Repo.one(
       from c in Consent,
         where: c.user_id == ^user_id,
@@ -17,9 +19,14 @@ defmodule Consent.Accounts do
     )
   end
 
-  def get_consent!(id), do: Repo.get!(Consent, id)
+  def create_user_consent!(%User{} = user, attrs \\ %{}) do
+    case create_user_consent(user, attrs) do
+      {:ok, consent} -> consent
+      {:error, changeset} -> raise "Bang! invalid new user consent #{inspect(changeset.errors)}"
+    end
+  end
 
-  def create_consent(%User{} = user, attrs) do
+  def create_user_consent(%User{} = user, attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
@@ -30,6 +37,32 @@ defmodule Consent.Accounts do
     }
     |> Consent.user_changeset(attrs)
     |> Repo.insert()
+  end
+
+  def assign_user_consent!(%User{} = user, %Consent{} = consent) do
+    case assign_user_consent(user, consent) do
+      {:ok, consent} ->
+        consent
+
+      {:error, changeset} ->
+        raise "Bang! invalid assigned user consent #{inspect(changeset.errors)}"
+    end
+  end
+
+  def assign_user_consent(%User{id: user_id}, %Consent{} = consent) do
+    consent
+    |> Consent.user_changeset(%{user_id: user_id})
+    |> Repo.insert_or_update()
+  end
+
+  def create_anonymous_consent!(attrs \\ %{}) do
+    case create_anonymous_consent(attrs) do
+      {:ok, consent} ->
+        consent
+
+      {:error, changeset} ->
+        raise "Bang! invalid new anonymous content #{inspect(changeset.errors)}"
+    end
   end
 
   def create_anonymous_consent(attrs \\ %{}) do
@@ -58,17 +91,17 @@ defmodule Consent.Accounts do
     end
   end
 
-  def update_consent(%User{} = user, attrs) do
-    case get_consent(user) do
-      nil ->
-        create_consent(user, attrs)
+  def update_user_consent(%User{} = user, attrs) do
+    consent = get_user_consent(user)
 
-      %Consent{} = consent ->
-        now = DateTime.utc_now() |> DateTime.truncate(:second)
-        expires = DateTime.add(now, 3600 * 24 * 365)
+    if is_nil(consent) do
+      create_user_consent(user, attrs)
+    else
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      expires = DateTime.add(now, 3600 * 24 * 365)
 
-        attrs = Map.merge(%{consented_at: now, expires_at: expires}, attrs)
-        update_consent(consent, attrs)
+      attrs = Map.merge(%{consented_at: now, expires_at: expires}, attrs)
+      update_consent(consent, attrs)
     end
   end
 
@@ -97,7 +130,7 @@ defmodule Consent.Accounts do
     end
   end
 
-  def delete_consent(%User{id: user_id}) do
+  def delete_user_consent(%User{id: user_id}) do
     Repo.delete_all(
       from c in Consent,
         where: c.user_id == ^user_id

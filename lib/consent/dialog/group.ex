@@ -1,38 +1,38 @@
-defmodule Consent.Accounts.ConsentGroup do
+defmodule Consent.Dialog.Group do
   use Ecto.Schema
-  import Ecto.Changeset
-
-  alias __MODULE__
 
   embedded_schema do
-    field :slug, :string
-    field :title, :string
-    field :description, :string
+    field :title, :string, virtual: true
+    field :description, :string, virtual: true
+    field :show, :boolean, virtual: true
     field :required, :boolean
-    field :show, :boolean
+    field :slug, :string
     field :consent_given, :boolean
   end
 
-  # TODO: add validations
-  def changeset(consent_group, attrs) do
-    consent_group
-    |> cast(attrs, [:slug, :title, :description, :required, :show, :consent_given])
-    |> validate_required([:slug, :title, :description, :required])
+  def changeset(group, attrs) do
+    group
+    |> Ecto.Changeset.cast(attrs, [:required, :slug, :consent_given])
+    |> Ecto.Changeset.validate_required([:required, :slug, :consent_given])
   end
 
   def set_consent(group, nil) do
-    %ConsentGroup{group | show: false, consent_given: true}
+    %__MODULE__{group | show: false, consent_given: true}
   end
 
   def set_consent(group, consented_groups) when is_list(consented_groups) do
     consented = group.required || Enum.member?(consented_groups, group.slug)
-    %ConsentGroup{group | show: false, consent_given: consented}
+    %__MODULE__{group | show: false, consent_given: consented}
   end
 
-  def builtin_groups() do
+  def all_groups() do
+    Enum.map(builtins(), fn {slug, _} -> slug end)
+  end
+
+  def builtins() do
     [
       {"mandatory",
-       %ConsentGroup{
+       %__MODULE__{
          slug: "mandatory",
          title: "Mandatory cookies",
          required: true,
@@ -47,7 +47,7 @@ defmodule Consent.Accounts.ConsentGroup do
          """
        }},
       {"functional",
-       %ConsentGroup{
+       %__MODULE__{
          slug: "functional",
          title: "Enhancement cookies",
          required: false,
@@ -59,7 +59,7 @@ defmodule Consent.Accounts.ConsentGroup do
          """
        }},
       {"measurement",
-       %ConsentGroup{
+       %__MODULE__{
          slug: "measurement",
          title: "Measurement cookies",
          required: false,
@@ -74,7 +74,7 @@ defmodule Consent.Accounts.ConsentGroup do
          """
        }},
       {"marketing",
-       %ConsentGroup{
+       %__MODULE__{
          slug: "marketing",
          title: "Marketing cookies",
          required: false,
