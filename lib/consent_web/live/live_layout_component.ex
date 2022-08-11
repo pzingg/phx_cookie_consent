@@ -1,4 +1,4 @@
-defmodule ConsentWeb.LayoutComponent do
+defmodule ConsentWeb.LiveLayoutComponent do
   @moduledoc """
   Component for rendering content inside layout without full DOM patch.
   """

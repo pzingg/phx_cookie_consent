@@ -27,8 +27,10 @@ defmodule ConsentWeb.Router do
 
     get "/", PageController, :index
 
-    get "/consent", ConsentController, :edit
-    post "/consent", ConsentController, :update
+    get "/consent", ConsentController, :edit_summary
+    post "/consent", ConsentController, :update_summary
+    get "/consent/more", ConsentController, :edit_details
+    post "/consent/more", ConsentController, :update_details
   end
 
   # Other scopes may use custom stacks.

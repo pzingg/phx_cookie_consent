@@ -5,7 +5,20 @@ defmodule ConsentWeb.ConsentHelpers do
 
   alias Consent.Accounts
 
-  def handle_consent_form_data(consent, user, %{"groups" => groups, "terms" => terms}) do
+  def handle_summary_form_data(consent, user, allowed_cookies) do
+    case allowed_cookies do
+      "all" ->
+        update_consent(consent, user, %{consented: :all})
+
+      "none" ->
+        update_consent(consent, user, %{groups: []})
+
+      _ ->
+        {:error, "invalid data #{inspect(allowed_cookies)}"}
+    end
+  end
+
+  def handle_details_form_data(consent, user, %{"groups" => groups, "terms" => terms}) do
     groups =
       groups
       |> Enum.into([])

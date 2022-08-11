@@ -25,6 +25,10 @@ defmodule Consent.Dialog.Group do
     %__MODULE__{group | show: false, consent_given: consented}
   end
 
+  def all_groups() do
+    Enum.map(builtins(), fn {slug, _} -> slug end)
+  end
+
   def builtins() do
     [
       {"mandatory",
