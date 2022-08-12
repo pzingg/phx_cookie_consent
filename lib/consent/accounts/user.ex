@@ -10,7 +10,8 @@ defmodule Consent.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
-    has_one :consent, Consent.Accounts.Consent
+    # Since we don't have the reverse :belongs_to, implement :delete_all here
+    has_one :consent, Consent.Accounts.Consent, on_replace: :update, on_delete: :delete_all
 
     timestamps()
   end
@@ -140,5 +141,11 @@ defmodule Consent.Accounts.User do
     else
       add_error(changeset, :current_password, "is not valid")
     end
+  end
+
+  def consent_changeset(user, attrs) do
+    user
+    |> cast(attrs, [])
+    |> cast_assoc(:consent)
   end
 end

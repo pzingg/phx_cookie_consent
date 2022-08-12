@@ -93,16 +93,16 @@ defmodule ConsentWeb.UserAuth do
 
     disposition =
       if is_nil(cookie_consent) do
-        {:cookie_not_found, nil}
+        {:cookie_not_found, nil, nil}
       else
         if is_nil(cookie_consent.user_id) do
-          {:cookie_anonymous, nil}
+          {:cookie_anonymous, cookie_consent, nil}
         else
-          {:no_op, cookie_consent.user_id}
+          {:cookie_from_user, cookie_consent}
         end
       end
 
-    {conn, disposition, cookie_consent, nil}
+    {conn, disposition}
   end
 
   # Logged in case
@@ -134,46 +134,46 @@ defmodule ConsentWeb.UserAuth do
     disposition =
       case {status, cookie_consent} do
         {:ok, nil} ->
-          {:cookie_not_found, user}
+          {:cookie_not_found, consent, user}
 
         {:expired, nil} ->
-          {:expired_available, user}
+          {:expired_available, consent, user}
 
         {:not_found, nil} ->
           {:nothing_available, user}
 
         {:ok, %Consent{user_id: nil} = _anonymous_user} ->
           case DateTime.compare(consent.consented_at, cookie_consent.consented_at) do
-            :gt -> {:cookie_older_anonymous_user, user}
-            _ -> {:cookie_newer_anonymous_user, user}
+            :gt -> {:cookie_older_anonymous_user, consent, cookie_consent, user}
+            _ -> {:cookie_newer_anonymous_user, consent, cookie_consent, user}
           end
 
         {_expired_or_not_found, %Consent{user_id: nil} = _anonymous_user} ->
-          {:cookie_anonymous, user}
+          {:cookie_anonymous, cookie_consent, user}
 
         {:not_found, %Consent{user_id: ^user_id} = _same_user} ->
-          :cookie_same_user
+          {:cookie_same_user, cookie_consent}
 
         {_ok_or_expired, %Consent{user_id: ^user_id} = _same_user} ->
           case DateTime.compare(consent.consented_at, cookie_consent.consented_at) do
-            :gt -> {:cookie_older_same_user, user}
-            _ -> {:cookie_newer_same_user, user}
+            :gt -> {:cookie_older_same_user, consent, cookie_consent, user}
+            _ -> {:cookie_newer_same_user, consent, cookie_consent, user}
           end
 
-        {:ok, %Consent{user_id: cookie_user_id} = _other_user} ->
-          {:no_op, cookie_user_id}
+        {:ok, %Consent{user_id: other_user_id} = _other_user} ->
+          {:no_op_other_user, consent, user, other_user_id}
 
-        {:expired, %Consent{user_id: cookie_user_id} = _other_user} ->
-          {:expired_other_user, user, cookie_user_id}
+        {:expired, %Consent{user_id: other_user_id} = _other_user} ->
+          {:expired_other_user, consent, user, other_user_id}
 
-        {:not_found, %Consent{user_id: cookie_user_id} = _other_user} ->
-          {:cookie_other_user, user, cookie_user_id}
+        {:not_found, %Consent{user_id: other_user_id} = _other_user} ->
+          {:cookie_other_user, user, other_user_id}
       end
 
-    {conn, disposition, cookie_consent, consent}
+    {conn, disposition}
   end
 
-  defp process_cookie_logic({conn, disposition, cookie_consent, consent}) do
+  defp process_cookie_logic({conn, disposition}) do
     tag =
       if is_tuple(disposition) do
         elem(disposition, 0)
@@ -185,8 +185,8 @@ defmodule ConsentWeb.UserAuth do
 
     {conn, consent} =
       case disposition do
-        {:no_op, cookie_user_id} ->
-          Logger.info("no op cookie user id #{cookie_user_id}")
+        {:no_op_other_user, consent, user, other_user_id} ->
+          Logger.info("no op for #{user.id}, other user in cookie #{other_user_id}")
           {conn, consent}
 
         {:nothing_available, user} ->
@@ -197,58 +197,68 @@ defmodule ConsentWeb.UserAuth do
            |> write_consent_cookie(consent)
            |> show_cookie_modal(), consent}
 
-        {:expired_available, user} ->
+        {:expired_available, consent, user} ->
           Logger.info("assigning cookie from expired consent")
 
           {conn
            |> assign_and_write_consent_cookie(consent, user.id)
            |> show_cookie_modal(), consent}
 
-        {:expired_other_user, user, cookie_user_id} ->
-          Logger.info("consent expired for #{user.id}, user in cookie #{cookie_user_id}")
+        {:expired_other_user, consent, user, other_user_id} ->
+          Logger.info("consent expired for #{user.id}, other user in cookie #{other_user_id}")
+
           {show_cookie_modal(conn), consent}
 
-        {:cookie_not_found, nil} ->
+        {:cookie_not_found, nil, _} ->
           consent = Accounts.create_anonymous_consent!(%{consented: :all})
           Logger.info("no cookie, creating anonymous #{consent.id}")
           {write_consent_cookie(conn, consent), consent}
 
-        {:cookie_not_found, user} ->
+        {:cookie_not_found, consent, user} ->
           Logger.info("no consent in cookie")
           {assign_and_write_consent_cookie(conn, consent, user.id), consent}
 
-        {:cookie_anonymous, nil} ->
+        {:cookie_anonymous, cookie_consent, nil} ->
           Logger.info("using anonymous cookie #{cookie_consent.id}")
           {conn, cookie_consent}
 
-        {:cookie_anonymous, user} ->
+        {:cookie_anonymous, cookie_consent, user} ->
           consent = Accounts.assign_user_consent!(user, cookie_consent)
           Logger.info("assigning from anonymous cookie #{consent.id}")
           {write_consent_cookie(conn, consent), consent}
 
-        :cookie_same_user ->
+        {:cookie_from_user, cookie_consent} ->
+          Logger.info("using cookie #{cookie_consent.id} from user #{cookie_consent.user_id}")
+          {conn, cookie_consent}
+
+        {:cookie_same_user, cookie_consent} ->
           Logger.info("using same user cookie #{cookie_consent.id}")
           {conn, cookie_consent}
 
-        {:cookie_older_anonymous_user, user} ->
+        {:cookie_older_anonymous_user, consent, _cookie_consent, user} ->
           Logger.info("assigning to anonymous user cookie from newer consent #{consent.id}")
           {assign_and_write_consent_cookie(conn, consent, user.id), consent}
 
-        {:cookie_newer_anonymous_user, user} ->
+        {:cookie_newer_anonymous_user, consent, cookie_consent, user} ->
           Logger.info("assigning from anonymous user cookie to older consent #{consent.id}")
           {conn, Accounts.assign_user_consent!(user, cookie_consent)}
 
-        {:cookie_older_same_user, user} ->
+        {:cookie_older_same_user, consent, _cookie_consent, user} ->
           Logger.info("assigning to same user cookie from newer consent #{consent.id}")
           {assign_and_write_consent_cookie(conn, consent, user.id), consent}
 
-        {:cookie_newer_same_user, user} ->
+        {:cookie_newer_same_user, consent, cookie_consent, user} ->
           Logger.info("assigning from same user cookie to older consent #{consent.id}")
           {conn, Accounts.assign_user_consent!(user, cookie_consent)}
 
-        {:cookie_other_user, user, cookie_user_id} ->
-          Logger.info("separate consents found in user #{user.id} and cookie #{cookie_user_id}")
-          {conn, consent}
+        {:cookie_other_user, user, other_user_id} ->
+          consent = Accounts.create_user_consent!(user, %{consented: :all})
+
+          Logger.info(
+            "no consent for #{user.id}, created #{consent.id} cookie was from #{other_user_id}"
+          )
+
+          {show_cookie_modal(conn), consent}
       end
 
     put_session(conn, :cookie_consent, consent)

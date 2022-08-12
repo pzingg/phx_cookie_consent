@@ -24,16 +24,7 @@ defmodule Consent.Accounts.Consent do
     DateTime.diff(consent.expires_at, DateTime.utc_now(), :second)
   end
 
-  def anonymous_changeset(%Consent{} = consent, attrs) do
-    attrs = set_consent(attrs)
-
-    consent
-    |> cast(attrs, [:user_id, :terms, :groups, :consented_at, :expires_at])
-    |> validate_required([:consented_at, :expires_at])
-    |> validate_version(:terms)
-  end
-
-  def user_changeset(%Consent{} = consent, attrs) do
+  def changeset(%Consent{} = consent, attrs) do
     attrs = set_consent(attrs)
 
     consent
