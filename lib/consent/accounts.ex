@@ -76,24 +76,26 @@ defmodule Consent.Accounts do
   end
 
   defp update_consent_in_user(%User{} = user, %Consent{} = consent, attrs) do
-    user = Repo.preload(user, :consent)
+    consent_changeset = Consent.changeset(consent, attrs)
 
-    consent =
-      consent
-      |> Consent.changeset(attrs)
-      |> Ecto.Changeset.apply_changes()
-      |> Map.from_struct()
-      |> Map.drop([:__meta__, :user_id])
+    case Ecto.Changeset.apply_action(consent_changeset, :validate) do
+      {:ok, %Consent{} = data} ->
+        consent_attrs = Map.from_struct(data) |> Map.drop([:__meta__, :user_id])
 
-    results =
-      user
-      |> Ecto.Changeset.cast(%{consent: consent}, [])
-      |> Ecto.Changeset.cast_assoc(:consent)
-      |> Repo.update()
+        results =
+          user
+          |> Repo.preload(:consent)
+          |> Ecto.Changeset.cast(%{consent: consent_attrs}, [])
+          |> Ecto.Changeset.cast_assoc(:consent)
+          |> Repo.update()
 
-    case results do
-      {:ok, user} -> {:ok, user.consent}
-      {:error, changeset} -> {:error, changeset}
+        case results do
+          {:ok, user} -> {:ok, user.consent}
+          {:error, changeset} -> {:error, changeset}
+        end
+
+      {:error, changeset} ->
+        {:error, changeset}
     end
   end
 
