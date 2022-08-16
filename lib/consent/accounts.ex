@@ -75,12 +75,14 @@ defmodule Consent.Accounts do
     end
   end
 
-  defp update_consent_in_user(%User{} = user, %Consent{} = consent, attrs) do
+  defp update_consent_in_user(%User{id: user_id} = user, %Consent{} = consent, attrs) do
     consent_changeset = Consent.changeset(consent, attrs)
 
     case Ecto.Changeset.apply_action(consent_changeset, :validate) do
       {:ok, %Consent{} = data} ->
-        consent_attrs = Map.from_struct(data) |> Map.drop([:__meta__, :user_id])
+        consent_attrs =
+          Map.from_struct(data)
+          |> Map.drop([:__meta__, :user_id])
 
         results =
           user

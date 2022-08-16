@@ -174,13 +174,7 @@ defmodule ConsentWeb.UserAuth do
   end
 
   defp process_cookie_logic({conn, disposition}) do
-    tag =
-      if is_tuple(disposition) do
-        elem(disposition, 0)
-      else
-        disposition
-      end
-
+    tag = elem(disposition, 0)
     Logger.info("cookie logic #{tag}")
 
     {conn, consent} =

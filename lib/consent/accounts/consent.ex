@@ -24,12 +24,16 @@ defmodule Consent.Accounts.Consent do
     DateTime.diff(consent.expires_at, DateTime.utc_now(), :second)
   end
 
+  @doc """
+  The `:user_id` in `%Consent{}` struct is always set by `:cast_assoc`,
+  so we don't include it in `cast`, or require it.
+  """
   def changeset(%Consent{} = consent, attrs) do
     attrs = set_consent(attrs)
 
     consent
-    |> cast(attrs, [:user_id, :terms, :groups, :consented_at, :expires_at])
-    |> validate_required([:user_id, :consented_at, :expires_at])
+    |> cast(attrs, [:terms, :groups, :consented_at, :expires_at])
+    |> validate_required([:consented_at, :expires_at])
     |> validate_version(:terms)
   end
 
