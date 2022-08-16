@@ -1,7 +1,7 @@
-<LayoutComponent.consent_summary_modal
+<ConsentComponent.consent_summary_modal
   form_action={@form_action}
+  learn_more_href={@learn_more_href}
   header={@header}
-  learn_more_href={Routes.consent_path(@conn, :edit_details)}
   return_to={@return_to} />
 
 <button x-data="{}" id="manage-cookies-button" type="button"

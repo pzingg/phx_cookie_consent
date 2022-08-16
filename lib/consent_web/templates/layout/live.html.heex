@@ -7,7 +7,9 @@
     phx-click="lv:clear-flash"
     phx-value-key="error"><%= live_flash(@flash, :error) %></p>
 
-  <.live_component module={ConsentWeb.LayoutComponent} id="layout" />
+  <%= if @show_cookie_modal do %>
+    <ConsentWeb.ConsentComponent.consent_summary_modal show="true" />
+  <% end %>
 
   <%= @inner_content %>
 </main>

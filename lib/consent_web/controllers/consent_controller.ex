@@ -9,9 +9,8 @@ defmodule ConsentWeb.ConsentController do
   def edit_summary(conn, _params) do
     render(conn, "edit_summary.html",
       form_action: Routes.consent_path(conn, :update_summary),
-      header: Header.builtin(),
-      return_to: "/",
-      show_event: "consent-modal-show"
+      learn_more_href: Routes.consent_path(conn, :edit_details),
+      header: Header.builtin()
     )
   end
 
@@ -60,9 +59,7 @@ defmodule ConsentWeb.ConsentController do
       form_action: Routes.consent_path(conn, :update_details),
       header: Header.builtin(),
       terms: terms,
-      groups_with_index: groups_with_index,
-      return_to: "/",
-      show_event: "consent-modal-show"
+      groups_with_index: groups_with_index
     )
   end
 

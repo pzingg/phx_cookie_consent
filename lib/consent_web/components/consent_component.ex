@@ -1,19 +1,26 @@
-defmodule ConsentWeb.LayoutComponent do
+defmodule ConsentWeb.ConsentComponent do
   use Phoenix.Component
 
   @doc """
-  Alpine-JS only cookie consent modal component. Required assigns:
+  Alpine-JS only cookie consent modal component. Defaulted assigns:
 
-  * `:form_action`
-  * `:header`
-  * `:learn_more_href`
-  * `:show`
+  * `:show` - `false`
+  * `:form_action` - "/consent"
+  * `:learn_more_href` - "/consent/more"
+  * `:return_to` - "/"
+  * `:header` - `Header.builtin()`
   """
   def consent_summary_modal(assigns) do
+    form_action = assigns[:form_action] || "/consent"
+
     assigns =
       assigns
-      |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(assigns.form_action))
       |> assign_new(:show, fn -> false end)
+      |> assign_new(:form_action, fn -> form_action end)
+      |> assign_new(:learn_more_href, fn -> "/consent/more" end)
+      |> assign_new(:return_to, fn -> "/" end)
+      |> assign_new(:header, fn -> Consent.Dialog.Header.builtin() end)
+      |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(form_action))
       |> assign_new(:id, fn -> "consent-modal" end)
       |> assign_new(:layout_id, fn -> "layout" end)
       |> assign_new(:form_id, fn -> "consent-form" end)
@@ -26,7 +33,6 @@ defmodule ConsentWeb.LayoutComponent do
       |> assign_new(:cancel, fn -> "Cancel" end)
       |> assign_new(:show_event, fn -> "consent-modal-show" end)
       |> assign_new(:hide_event, fn -> "consent-modal-hide" end)
-      |> assign_new(:return_to, fn -> "/" end)
 
     on_show_hide = [
       {:"@#{assigns.show_event}.window", "showModal = true"},
