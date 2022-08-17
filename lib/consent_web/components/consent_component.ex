@@ -1,24 +1,33 @@
-defmodule ConsentWeb.LayoutComponent do
+defmodule ConsentWeb.ConsentComponent do
   use Phoenix.Component
 
   @doc """
-  Alpine-JS only cookie consent modal component. Required assigns:
+  Alpine-JS only cookie consent modal component. Defaulted assigns:
 
-  * `:form_action`
+  * `:show` - `false`
+  * `:form_action` - "/consent"
+  * `:learn_more_href` - "/consent/more"
+  * `:return_to` - "/"
+
+  Required slot:
+
   * `:header`
-  * `:learn_more_href`
-  * `:show`
+
   """
-  def consent_summary_modal(assigns) do
+  def consent_summary(assigns) do
+    form_action = assigns[:form_action] || "/consent"
+
     assigns =
       assigns
-      |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(assigns.form_action))
       |> assign_new(:show, fn -> false end)
+      |> assign_new(:form_action, fn -> form_action end)
+      |> assign_new(:learn_more_href, fn -> "/consent/more" end)
+      |> assign_new(:return_to, fn -> "/" end)
+      |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(form_action))
       |> assign_new(:id, fn -> "consent-modal" end)
       |> assign_new(:layout_id, fn -> "layout" end)
       |> assign_new(:form_id, fn -> "consent-form" end)
       |> assign_new(:as, fn -> "consent_params" end)
-      |> assign_new(:icon, fn -> "ICON" end)
       |> assign_new(:title, fn -> "Cookie Consent" end)
       |> assign_new(:allow_all, fn -> "Allow All" end)
       |> assign_new(:allow_none, fn -> "Allow None" end)
@@ -26,7 +35,6 @@ defmodule ConsentWeb.LayoutComponent do
       |> assign_new(:cancel, fn -> "Cancel" end)
       |> assign_new(:show_event, fn -> "consent-modal-show" end)
       |> assign_new(:hide_event, fn -> "consent-modal-hide" end)
-      |> assign_new(:return_to, fn -> "/" end)
 
     on_show_hide = [
       {:"@#{assigns.show_event}.window", "showModal = true"},
@@ -64,12 +72,15 @@ defmodule ConsentWeb.LayoutComponent do
                       <form action={@form_action} method="post" id={@form_id}>
                         <input name="_csrf_token" type="hidden" value={@csrf_token}>
 
+                        <%= for header <- @header do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
-                          <h3 class="text-lg font-medium leading-6 text-gray-900"><%= @header.title %></h3>
-                          <div class="pb-2 mt-4 text-sm">
-                            <%= @header.description %>
+                          <h3 class="text-lg font-medium leading-6 text-gray-900"><%= header.title %></h3>
+                          <div class="pb-2">
+                            <%= render_slot(header) %>
                           </div>
                         </div>
+                        <% end %>
+
                       </form>
                     </div>
                   </p>
@@ -102,12 +113,17 @@ defmodule ConsentWeb.LayoutComponent do
   Alpine-JS only cookie consent modal component. Required assigns:
 
   * `:form_action`
+  * `:terms_agreement` - Map with `:version` (agreed to, or nil) and `:current_version`
+  * `:groups` - list of cookie group slugs agreed to.
+  * `:show`
+
+  Required slots:
+
   * `:header`
   * `:terms`
-  * `:groups_with_index`
-  * `:show`
+  * `:cookie_group` - one for each group
   """
-  def consent_details_modal(assigns) do
+  def consent_details(assigns) do
     assigns =
       assigns
       |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(assigns.form_action))
@@ -116,7 +132,6 @@ defmodule ConsentWeb.LayoutComponent do
       |> assign_new(:layout_id, fn -> "layout" end)
       |> assign_new(:form_id, fn -> "consent-form" end)
       |> assign_new(:as, fn -> "consent_params" end)
-      |> assign_new(:icon, fn -> "ICON" end)
       |> assign_new(:title, fn -> "Manage Cookies" end)
       |> assign_new(:confirm, fn -> "Save" end)
       |> assign_new(:cancel, fn -> "Cancel" end)
@@ -160,18 +175,21 @@ defmodule ConsentWeb.LayoutComponent do
                       <form action={@form_action} method="post" id={@form_id}>
                         <input name="_csrf_token" type="hidden" value={@csrf_token}>
 
+                        <%= for header <- @header do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
-                          <h3 class="text-lg font-medium leading-6 text-gray-900"><%= @header.title %></h3>
-                          <div class="pb-2 mt-4 text-sm">
-                            <%= @header.description %>
+                          <h3 class="text-lg font-medium leading-6 text-gray-900"><%= header.title %></h3>
+                          <div class="pb-2">
+                            <%= render_slot(header) %>
                           </div>
                         </div>
+                        <% end %>
 
+                        <%= for terms <- @terms do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <div class="sm:flex sm:items-center sm:justify-between">
-                            <h3 class="text-lg font-medium leading-6 text-gray-900"><%= @terms.title %></h3>
+                            <h3 class="text-lg font-medium leading-6 text-gray-900"><%= terms.title %></h3>
                             <div class="mt-3 sm:mt-0 sm:ml-4">
-                              <input name={"#{@as}[terms][version]"} type="hidden" id={"#{@form_id}_terms_version"} value={@terms.version}>
+                              <input name={"#{@as}[terms][version]"} type="hidden" id={"#{@form_id}_terms_version"} value={terms.version}>
                               <label class="block mb-1 text-gray-700">
                                 <span class="mr-2 text-red-600 ">Required</span>
                                 <input name={"#{@as}[terms][consent_given]"} type="hidden" value="false">
@@ -179,35 +197,35 @@ defmodule ConsentWeb.LayoutComponent do
                               </label>
                             </div>
                           </div>
-                          <div class="mt-4 text-sm">
-                            <%= @terms.description %>
+                          <div>
+                            <%= render_slot(terms) %>
                           </div>
                         </div>
+                        <% end %>
 
-                        <%= for {cg, i} <- @groups_with_index do %>
+                        <%= for group <- @cookie_group do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <div class="sm:flex sm:items-center sm:justify-between">
                             <div class="flex-initial w-96">
-                              <h3 @click={"showGroup = showGroup == '#{cg.slug}' ? '' : '#{cg.slug}'"} class="py-1 pl-2 pr-6 text-lg font-medium leading-6 text-gray-900 border border-blue-300 rounded"><%= cg.title %></h3>
+                              <h3 @click={"showGroup = showGroup == '#{group.slug}' ? '' : '#{group.slug}'"} class="py-1 pl-2 pr-6 text-lg font-medium leading-6 text-gray-900 border border-blue-300 rounded"><%= group.title %></h3>
                             </div>
                             <div class="mt-3 sm:mt-0 sm:ml-4">
-                              <input name={"#{@as}[groups][#{i}][slug]"} type="hidden" id={"#{@form_id}_#{cg.slug}_slug"} value={cg.slug}>
+                              <input name={"#{@as}[groups][#{group.index}][slug]"} type="hidden" id={"#{@form_id}_#{group.slug}_slug"} value={group.slug}>
                               <label class="block mb-1">
-                                <%= if cg.required do %>
+                                <%= if group.required do %>
                                 <span class="mr-2 text-red-600">Required</span>
-                                <input name={"#{@as}    </div>
-                                [groups][#{i}][consent_given]"} type="hidden" value="false">
-                                <input name={"#{@as}[groups][#{i}][consent_given]"} type="checkbox" checked required id={"#{@form_id}_#{cg.slug}_consent_given"} value="true">
+                                <input name={"#{@as}[groups][#{group.index}][consent_given]"} type="hidden" value="false">
+                                <input name={"#{@as}[groups][#{group.index}][consent_given]"} type="checkbox" checked required id={"#{@form_id}_#{group.slug}_consent_given"} value="true">
                                 <% else %>
                                 <span class="mr-2">Allow?</span>
-                                <input name={"#{@as}[groups][#{i}][consent_given]"} type="hidden" value="false">
-                                <input name={"#{@as}[groups][#{i}][consent_given]"} type="checkbox" checked={cg.consent_given} id={"#{@form_id}_#{cg.slug}_consent_given"} value="true">
+                                <input name={"#{@as}[groups][#{group.index}][consent_given]"} type="hidden" value="false">
+                                <input name={"#{@as}[groups][#{group.index}][consent_given]"} type="checkbox" checked={group.consent_given} id={"#{@form_id}_#{group.slug}_consent_given"} value="true">
                                 <% end %>
                               </label>
                             </div>
                           </div>
-                          <div x-show={"showGroup == '#{cg.slug}'"} id={"#{@form_id}_#{cg.slug}_description"} class="mt-4 text-sm">
-                            <%= cg.description %>
+                          <div x-show={"showGroup == '#{group.slug}'"} id={"#{@form_id}_#{group.slug}_description"}>
+                            <%= render_slot(group) %>
                           </div>
                         </div>
                         <% end %>

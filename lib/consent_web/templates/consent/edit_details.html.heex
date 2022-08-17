@@ -1,12 +1,80 @@
-<LayoutComponent.consent_details_modal
+<.consent_details
   form_action={@form_action}
-  header={@header}
-  terms={@terms}
-  groups_with_index={@groups_with_index}
-  return_to={@return_to} />
+  return_to={@return_to}>
+
+<:header title="This site uses cookies">
+<span class="mt-4 text-sm">
+  We use cookies on this site so we can provide you with personalised content,
+  ads and to analyze our website's traffic.
+  Check the boxes below to agree to our <a class="text-blue-600 cursor-pointer" href="/terms">Terms and Conditions</a>, and
+  to allow or restrict the cookies being used.
+  Click one of the cookie group headings below to read more.
+  To see the complete list of cookies used by our website,
+  visit the <a class="text-blue-600 cursor-pointer" href="/cookies">Cookies</a> page.
+</span>
+</:header>
+
+<:terms title="Terms and Conditions" required={true}
+  consent_given={@terms_agreement.version == @terms_agreement.current_version}
+  version={@terms_agreement.current_version}>
+<span class="mt-4 text-sm">
+  Please read our website's <a class="text-blue-600 cursor-pointer" href="/terms">Terms and Conditions,
+  Version <%= @terms_agreement.current_version %></a>.
+  By continuing to use this website, you consent to those terms.
+</span>
+</:terms>
+
+<:cookie_group index="0" required={true}
+  consent_given={true} slug="mandatory" title="Mandatory cookies">
+<span class="mt-4 text-sm">
+  These cookies are necessary for the website to function and cannot
+  be switched off in our systems. They are usually only set in response
+  to actions made by you which amount to a request for services,
+  such as setting your privacy preferences, logging in or filling
+  in forms. You can set your browser to block or alert you about these
+  cookies, but some parts of the site will not then work. These cookies
+  do not store any personally identifiable information.
+  We take your privacy seriously. See our <a class="text-blue-600 cursor-pointer" href="/privacy">Privacy Policy</a>
+  for more information.
+</span>
+</:cookie_group>
+<:cookie_group index="1" required={false}
+  consent_given={Enum.member?(@groups, "functional")} slug="functional" title="Enhancement cookies">
+<span class="mt-4 text-sm">
+  These cookies enable the website to provide enhanced functionality
+  and personalisation. They may be set by us or by third party providers
+  whose services we have added to our pages. If you do not allow these
+  cookies then some or all of these services may not function properly.
+</span>
+</:cookie_group>
+<:cookie_group index="2" required={false}
+  consent_given={Enum.member?(@groups, "measurement")} slug="measurement" title="Measurement cookies">
+<span class="mt-4 text-sm">
+  These cookies allow us to count visits and traffic sources so we can
+  measure and improve the performance of our site. They help us to know
+  which pages are the most and least popular and see how visitors move
+  around the site. All information these cookies collect is aggregated
+  and therefore anonymous. If you do not allow these cookies we will
+  not know when you have visited our site, and will not be able to
+  monitor its performance.
+</span>
+</:cookie_group>
+<:cookie_group index="3" required={false}
+  consent_given={Enum.member?(@groups, "marketing")} slug="marketing" title="Marketing cookies">
+<span class="mt-4 text-sm">
+  These cookies may be set through our site by our advertising partners.
+  They may be used by those companies to build a profile of your
+  interests and show you relevant adverts on other sites. They do not
+  store directly personal information, but are based on uniquely
+  identifying your browser and internet device. If you do not allow
+  these cookies, you will experience less targeted advertising.
+</span>
+</:cookie_group>
+
+</.consent_details>
 
 <button x-data="{}" id="manage-cookies-button" type="button"
   @click={"$dispatch('#{@show_event}')"}
-  class="px-6 py-2 text-center text-white bg-blue-500 rounded cursor-pointer hover:bg-blue-600 focus:outline-none">
+  class="px-6 py-2 text-center text-white bg-blue-500 rounded cursor-pointer hover:bg_slot-blue-600 focus:outline_slot-none">
   Cookies: Learn More
 </button>

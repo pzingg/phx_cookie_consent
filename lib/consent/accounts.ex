@@ -7,16 +7,13 @@ defmodule Consent.Accounts do
   require Logger
 
   alias Consent.Repo
-  alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
+  alias Consent.Accounts.{ConsentSettings, User, UserToken, UserNotifier}
 
   def get_consent!(id), do: Repo.get!(Consent, id)
 
-  def get_user_consent(%User{id: user_id}) do
-    Repo.one(
-      from c in Consent,
-        where: c.user_id == ^user_id,
-        order_by: [desc: c.consented_at]
-    )
+  def get_user_consent(%User{} = user) do
+    user = Repo.preload(user, :consent, force: true)
+    user.consent
   end
 
   def create_user_consent!(%User{} = user, attrs \\ %{}) do
@@ -30,16 +27,15 @@ defmodule Consent.Accounts do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
-    %Consent{
-      user_id: user.id,
+    consent = %ConsentSettings{
       consented_at: now,
       expires_at: expires
     }
-    |> Consent.user_changeset(attrs)
-    |> Repo.insert()
+
+    update_consent_in_user(user, consent, attrs)
   end
 
-  def assign_user_consent!(%User{} = user, %Consent{} = consent) do
+  def assign_user_consent!(%User{} = user, %ConsentSettings{} = consent) do
     case assign_user_consent(user, consent) do
       {:ok, consent} ->
         consent
@@ -49,10 +45,60 @@ defmodule Consent.Accounts do
     end
   end
 
-  def assign_user_consent(%User{id: user_id}, %Consent{} = consent) do
-    consent
-    |> Consent.user_changeset(%{user_id: user_id})
-    |> Repo.insert_or_update()
+  def assign_user_consent(%User{} = user, %ConsentSettings{} = consent) do
+    update_consent_in_user(user, consent, %{})
+  end
+
+  def update_user_consent(%User{} = user, attrs) do
+    consent = get_user_consent(user)
+
+    if is_nil(consent) do
+      create_user_consent(user, attrs)
+    else
+      now = DateTime.utc_now() |> DateTime.truncate(:second)
+      expires = DateTime.add(now, 3600 * 24 * 365)
+
+      attrs = Map.merge(%{consented_at: now, expires_at: expires}, attrs)
+      update_consent_in_user(user, consent, attrs)
+    end
+  end
+
+  def delete_user_consent(%User{} = user) do
+    results =
+      user
+      |> User.consent_changeset(%{consent: nil})
+      |> Repo.update()
+
+    case results do
+      {:ok, user} -> user.consent
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  defp update_consent_in_user(%User{} = user, %ConsentSettings{} = consent, attrs) do
+    consent_changeset = ConsentSettings.changeset(consent, attrs)
+
+    case Ecto.Changeset.apply_action(consent_changeset, :validate) do
+      {:ok, %ConsentSettings{} = data} ->
+        consent_attrs =
+          Map.from_struct(data)
+          |> Map.drop([:__meta__, :user_id])
+
+        results =
+          user
+          |> Repo.preload(:consent)
+          |> Ecto.Changeset.cast(%{consent: consent_attrs}, [])
+          |> Ecto.Changeset.cast_assoc(:consent)
+          |> Repo.update()
+
+        case results do
+          {:ok, user} -> {:ok, user.consent}
+          {:error, changeset} -> {:error, changeset}
+        end
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
   end
 
   def create_anonymous_consent!(attrs \\ %{}) do
@@ -70,7 +116,7 @@ defmodule Consent.Accounts do
     expires = DateTime.add(now, 3600 * 24 * 365)
 
     validated =
-      %Consent{
+      %ConsentSettings{
         id: Ecto.UUID.autogenerate(),
         user_id: nil,
         consented_at: now,
@@ -78,7 +124,7 @@ defmodule Consent.Accounts do
         inserted_at: now,
         updated_at: now
       }
-      |> Consent.anonymous_changeset(attrs)
+      |> ConsentSettings.changeset(attrs)
       |> Ecto.Changeset.apply_action(:new)
 
     case validated do
@@ -91,33 +137,13 @@ defmodule Consent.Accounts do
     end
   end
 
-  def update_user_consent(%User{} = user, attrs) do
-    consent = get_user_consent(user)
-
-    if is_nil(consent) do
-      create_user_consent(user, attrs)
-    else
-      now = DateTime.utc_now() |> DateTime.truncate(:second)
-      expires = DateTime.add(now, 3600 * 24 * 365)
-
-      attrs = Map.merge(%{consented_at: now, expires_at: expires}, attrs)
-      update_consent(consent, attrs)
-    end
-  end
-
-  def update_consent(%Consent{} = consent, attrs) do
-    consent
-    |> Consent.user_changeset(attrs)
-    |> Repo.update()
-  end
-
-  def update_anonymous_consent(%Consent{} = consent, attrs) do
+  def update_anonymous_consent(%ConsentSettings{} = consent, attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
     validated =
-      %Consent{consent | consented_at: now, expires_at: expires, updated_at: now}
-      |> Consent.anonymous_changeset(attrs)
+      %ConsentSettings{consent | consented_at: now, expires_at: expires, updated_at: now}
+      |> ConsentSettings.changeset(attrs)
       |> Ecto.Changeset.apply_action(:update)
 
     case validated do
@@ -128,13 +154,6 @@ defmodule Consent.Accounts do
         Logger.error("update_anonymous_consent failed #{inspect(changeset.errors)}")
         {:error, changeset}
     end
-  end
-
-  def delete_user_consent(%User{id: user_id}) do
-    Repo.delete_all(
-      from c in Consent,
-        where: c.user_id == ^user_id
-    )
   end
 
   ## Database getters

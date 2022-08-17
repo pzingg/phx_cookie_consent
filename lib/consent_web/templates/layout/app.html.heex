@@ -1,5 +1,19 @@
 <main id="main-main" role="main" class="container max-w-3xl px-4 mx-auto">
   <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
   <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+
+  <%= if @show_cookie_modal do %>
+  <.consent_summary show="true">
+    <:header title="This site uses cookies">
+    <span class="mt-4 text-sm">
+      We use cookies on this site so we can provide you with personalised content,
+      ads and to analyze our website's traffic.
+      Check the boxes below to agree to our <a class="text-blue-600 cursor-pointer" href="/terms">Terms and Conditions</a>, and
+      to allow or restrict the cookies being used.
+    </span>
+    </:header>
+  </.consent_summary>
+  <% end %>
+
   <%= @inner_content %>
 </main>
