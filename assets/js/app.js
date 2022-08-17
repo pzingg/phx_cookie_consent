@@ -24,7 +24,7 @@ import "phoenix_html"
 import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
-import Alpine from "alpinejs"
+import Alpine from "../vendor/alpine"
 
 // From live_beats
 let nowSeconds = () => Math.round(Date.now() / 1000)

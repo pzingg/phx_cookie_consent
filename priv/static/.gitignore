@@ -1,0 +1,12 @@
+# Ignore assets that are produced by build tools.
+assets/
+
+# Ignore digested assets cache.
+cache_manifest.json
+
+phoenix-*.png
+phoenix-*.png.gz
+favicon-*.ico
+favicon-*.ico.gz
+robots-*.txt
+robots-*.txt.gz

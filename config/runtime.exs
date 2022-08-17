@@ -16,7 +16,8 @@ if config_env() == :prod do
 
   config :consent, Consent.Repo,
     # ssl: true,
-    # socket_options: [:inet6],
+    # IMPORTANT: Or it won't find the DB server
+    socket_options: [:inet6],
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
 
@@ -32,7 +33,12 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  app_name =
+    System.get_env("FLY_APP_NAME") ||
+      raise "FLY_APP_NAME not available"
+
   config :consent, ConsentWeb.Endpoint,
+    url: [host: "#{app_name}.fly.dev", port: 80],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -48,8 +54,8 @@ if config_env() == :prod do
   # If you are doing OTP releases, you need to instruct Phoenix
   # to start each relevant endpoint:
   #
-  #     config :consent, ConsentWeb.Endpoint, server: true
-  #
+  config :consent, ConsentWeb.Endpoint, server: true
+
   # Then you can assemble a release by calling `mix release`.
   # See `mix help release` for more information.
 
@@ -70,4 +76,14 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Hackney
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+end
+
+if config_env() == :dev do
+  database_url = System.get_env("DATABASE_URL")
+
+  if database_url != nil do
+    config :consent, Consent.Repo,
+      url: database_url,
+      socket_options: [:inet6]
+  end
 end
