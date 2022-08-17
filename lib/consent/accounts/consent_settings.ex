@@ -7,7 +7,7 @@ defmodule Consent.Accounts.ConsentSettings do
 
   # TODO: fetch these from application.get_env()
   @current_terms_version "1.1.0"
-  @all_cookie_groups ["mandatory", "enhancement", "measurement", "marketing"]
+  @all_cookie_groups ["mandatory", "functional", "measurement", "marketing"]
 
   schema "consents" do
     # We may have nil here
