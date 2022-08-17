@@ -1,4 +1,4 @@
-defmodule Consent.Repo.Migrations.AddConsent do
+defmodule Consent.Repo.Migrations.CreateConsentSettings do
   use Ecto.Migration
 
   def change do

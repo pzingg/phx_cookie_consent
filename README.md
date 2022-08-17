@@ -1,5 +1,9 @@
 # Consent
 
+Simple cookie consent modal dialogs built with Phoenix Components and AlpineJS.
+
+## Build and run
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`

@@ -37,8 +37,10 @@ defmodule Consent.AccountsTest do
 
   describe "get_user!/1" do
     test "raises if id is invalid" do
+      no_such_uuid = "41d1e11a-0d34-4a89-9878-2560fe8f1b6f"
+
       assert_raise Ecto.NoResultsError, fn ->
-        Accounts.get_user!(-1)
+        Accounts.get_user!(no_such_uuid)
       end
     end
 

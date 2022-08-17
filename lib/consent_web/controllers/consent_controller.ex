@@ -3,13 +3,13 @@ defmodule ConsentWeb.ConsentController do
 
   require Logger
 
-  alias Consent.Dialog.{Header, Terms, Group}
+  alias Consent.Accounts.ConsentSettings
   alias ConsentWeb.{ConsentHelpers, UserAuth}
 
   def edit_summary(conn, _params) do
     render(conn, "edit_summary.html",
       form_action: Routes.consent_path(conn, :update_summary),
-      header: Header.builtin(),
+      learn_more_href: Routes.consent_path(conn, :edit_details),
       return_to: "/",
       show_event: "consent-modal-show"
     )
@@ -42,25 +42,15 @@ defmodule ConsentWeb.ConsentController do
 
   def edit_details(conn, _params) do
     cookie_consent = get_session(conn, :cookie_consent)
-    consented_groups = cookie_consent.groups
-
-    groups_with_index =
-      Group.builtins()
-      |> Enum.map(fn {_slug, group} ->
-        Group.set_consent(group, consented_groups)
-        |> Map.from_struct()
-      end)
-      |> Enum.with_index()
 
     # cookie_consent.terms may be nil
-    version = cookie_consent.terms
-    terms = Terms.builtin() |> Terms.set_consent(version) |> Map.from_struct()
-
     render(conn, "edit_details.html",
       form_action: Routes.consent_path(conn, :update_details),
-      header: Header.builtin(),
-      terms: terms,
-      groups_with_index: groups_with_index,
+      terms_agreement: %{
+        version: cookie_consent.terms,
+        current_version: ConsentSettings.current_version()
+      },
+      groups: cookie_consent.groups,
       return_to: "/",
       show_event: "consent-modal-show"
     )
