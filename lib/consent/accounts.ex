@@ -7,7 +7,7 @@ defmodule Consent.Accounts do
   require Logger
 
   alias Consent.Repo
-  alias Consent.Accounts.{Consent, User, UserToken, UserNotifier}
+  alias Consent.Accounts.{ConsentSettings, User, UserToken, UserNotifier}
 
   def get_consent!(id), do: Repo.get!(Consent, id)
 
@@ -27,7 +27,7 @@ defmodule Consent.Accounts do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
-    consent = %Consent{
+    consent = %ConsentSettings{
       consented_at: now,
       expires_at: expires
     }
@@ -35,7 +35,7 @@ defmodule Consent.Accounts do
     update_consent_in_user(user, consent, attrs)
   end
 
-  def assign_user_consent!(%User{} = user, %Consent{} = consent) do
+  def assign_user_consent!(%User{} = user, %ConsentSettings{} = consent) do
     case assign_user_consent(user, consent) do
       {:ok, consent} ->
         consent
@@ -45,7 +45,7 @@ defmodule Consent.Accounts do
     end
   end
 
-  def assign_user_consent(%User{} = user, %Consent{} = consent) do
+  def assign_user_consent(%User{} = user, %ConsentSettings{} = consent) do
     update_consent_in_user(user, consent, %{})
   end
 
@@ -75,11 +75,11 @@ defmodule Consent.Accounts do
     end
   end
 
-  defp update_consent_in_user(%User{} = user, %Consent{} = consent, attrs) do
-    consent_changeset = Consent.changeset(consent, attrs)
+  defp update_consent_in_user(%User{} = user, %ConsentSettings{} = consent, attrs) do
+    consent_changeset = ConsentSettings.changeset(consent, attrs)
 
     case Ecto.Changeset.apply_action(consent_changeset, :validate) do
-      {:ok, %Consent{} = data} ->
+      {:ok, %ConsentSettings{} = data} ->
         consent_attrs =
           Map.from_struct(data)
           |> Map.drop([:__meta__, :user_id])
@@ -116,7 +116,7 @@ defmodule Consent.Accounts do
     expires = DateTime.add(now, 3600 * 24 * 365)
 
     validated =
-      %Consent{
+      %ConsentSettings{
         id: Ecto.UUID.autogenerate(),
         user_id: nil,
         consented_at: now,
@@ -124,7 +124,7 @@ defmodule Consent.Accounts do
         inserted_at: now,
         updated_at: now
       }
-      |> Consent.changeset(attrs)
+      |> ConsentSettings.changeset(attrs)
       |> Ecto.Changeset.apply_action(:new)
 
     case validated do
@@ -137,13 +137,13 @@ defmodule Consent.Accounts do
     end
   end
 
-  def update_anonymous_consent(%Consent{} = consent, attrs) do
+  def update_anonymous_consent(%ConsentSettings{} = consent, attrs) do
     now = DateTime.utc_now() |> DateTime.truncate(:second)
     expires = DateTime.add(now, 3600 * 24 * 365)
 
     validated =
-      %Consent{consent | consented_at: now, expires_at: expires, updated_at: now}
-      |> Consent.changeset(attrs)
+      %ConsentSettings{consent | consented_at: now, expires_at: expires, updated_at: now}
+      |> ConsentSettings.changeset(attrs)
       |> Ecto.Changeset.apply_action(:update)
 
     case validated do

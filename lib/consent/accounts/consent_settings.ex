@@ -1,12 +1,13 @@
-defmodule Consent.Accounts.Consent do
+defmodule Consent.Accounts.ConsentSettings do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Consent.Dialog.{Group, Terms}
-  alias __MODULE__
-
   @primary_key {:id, Ecto.UUID, autogenerate: true}
   @timestamps_opts [type: :utc_datetime]
+
+  # TODO: fetch these from application.get_env()
+  @current_terms_version "1.1.0"
+  @all_cookie_groups ["mandatory", "enhancement", "measurement", "marketing"]
 
   schema "consents" do
     # We may have nil here
@@ -20,15 +21,19 @@ defmodule Consent.Accounts.Consent do
     timestamps()
   end
 
-  def expires_from_now(%Consent{} = consent) do
+  def expires_from_now(%__MODULE__{} = consent) do
     DateTime.diff(consent.expires_at, DateTime.utc_now(), :second)
   end
 
+  def current_version(), do: @current_terms_version
+
+  def all_groups(), do: @all_cookie_groups
+
   @doc """
-  The `:user_id` in `%Consent{}` struct is always set by `:cast_assoc`,
+  The `:user_id` in `%ConsentSettings{}` struct is always set by `:cast_assoc`,
   so we don't include it in `cast`, or require it.
   """
-  def changeset(%Consent{} = consent, attrs) do
+  def changeset(%__MODULE__{} = consent, attrs) do
     attrs = set_consent(attrs)
 
     consent
@@ -58,11 +63,11 @@ defmodule Consent.Accounts.Consent do
   end
 
   defp consent_current_terms(attrs) do
-    Map.put(attrs, :terms, Terms.current_version())
+    Map.put(attrs, :terms, current_version())
   end
 
   defp consent_all_groups(attrs) do
-    Map.put(attrs, :groups, Group.all_groups())
+    Map.put(attrs, :groups, all_groups())
   end
 
   def validate_version(changeset, field) do

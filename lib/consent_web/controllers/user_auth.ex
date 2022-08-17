@@ -6,7 +6,7 @@ defmodule ConsentWeb.UserAuth do
 
   alias Phoenix.LiveView
   alias Consent.Accounts
-  alias Consent.Accounts.{Consent, User}
+  alias Consent.Accounts.{ConsentSettings, User}
   alias ConsentWeb.Router.Helpers, as: Routes
 
   # Make the remember me cookie valid for 60 days.
@@ -44,14 +44,14 @@ defmodule ConsentWeb.UserAuth do
     Ecto.NoResultsError -> {:halt, redirect_require_login(socket)}
   end
 
-  def assign_and_write_consent_cookie(conn, %Consent{} = consent, user_id) do
+  def assign_and_write_consent_cookie(conn, %ConsentSettings{} = consent, user_id) do
     Logger.info("assign user to consent in cookie")
-    write_consent_cookie(conn, %Consent{consent | user_id: user_id})
+    write_consent_cookie(conn, %ConsentSettings{consent | user_id: user_id})
   end
 
-  def write_consent_cookie(conn, %Consent{} = consent) do
+  def write_consent_cookie(conn, %ConsentSettings{} = consent) do
     Logger.info("write consent to cookie")
-    max_age = Consent.expires_from_now(consent)
+    max_age = ConsentSettings.expires_from_now(consent)
 
     conn
     |> put_resp_cookie(
@@ -83,7 +83,7 @@ defmodule ConsentWeb.UserAuth do
 
   defp get_consent_status(nil, _now), do: :not_found
 
-  defp get_consent_status(%Consent{expires_at: expires_at}, now) do
+  defp get_consent_status(%ConsentSettings{expires_at: expires_at}, now) do
     if DateTime.compare(expires_at, now) != :gt do
       :expired
     else
@@ -147,31 +147,31 @@ defmodule ConsentWeb.UserAuth do
         {:not_found, nil} ->
           {:nothing_available, user}
 
-        {:ok, %Consent{user_id: nil} = _anonymous_user} ->
+        {:ok, %ConsentSettings{user_id: nil} = _anonymous_user} ->
           case DateTime.compare(consent.consented_at, cookie_consent.consented_at) do
             :gt -> {:cookie_older_anonymous_user, consent, cookie_consent, user}
             _ -> {:cookie_newer_anonymous_user, consent, cookie_consent, user}
           end
 
-        {_expired_or_not_found, %Consent{user_id: nil} = _anonymous_user} ->
+        {_expired_or_not_found, %ConsentSettings{user_id: nil} = _anonymous_user} ->
           {:cookie_anonymous, cookie_consent, user}
 
-        {:not_found, %Consent{user_id: ^user_id} = _same_user} ->
+        {:not_found, %ConsentSettings{user_id: ^user_id} = _same_user} ->
           {:cookie_same_user, cookie_consent}
 
-        {_ok_or_expired, %Consent{user_id: ^user_id} = _same_user} ->
+        {_ok_or_expired, %ConsentSettings{user_id: ^user_id} = _same_user} ->
           case DateTime.compare(consent.consented_at, cookie_consent.consented_at) do
             :gt -> {:cookie_older_same_user, consent, cookie_consent, user}
             _ -> {:cookie_newer_same_user, consent, cookie_consent, user}
           end
 
-        {:ok, %Consent{user_id: other_user_id} = _other_user} ->
+        {:ok, %ConsentSettings{user_id: other_user_id} = _other_user} ->
           {:no_op_other_user, consent, user, other_user_id}
 
-        {:expired, %Consent{user_id: other_user_id} = _other_user} ->
+        {:expired, %ConsentSettings{user_id: other_user_id} = _other_user} ->
           {:expired_other_user, consent, user, other_user_id}
 
-        {:not_found, %Consent{user_id: other_user_id} = _other_user} ->
+        {:not_found, %ConsentSettings{user_id: other_user_id} = _other_user} ->
           {:cookie_other_user, user, other_user_id}
       end
 

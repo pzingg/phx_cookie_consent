@@ -2,6 +2,8 @@ defmodule Consent.Accounts.User do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Consent.Accounts.ConsentSettings
+
   @primary_key {:id, Ecto.UUID, autogenerate: true}
   @timestamps_opts [type: :utc_datetime]
 
@@ -11,7 +13,7 @@ defmodule Consent.Accounts.User do
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     # Since we don't have the reverse :belongs_to, implement :delete_all here
-    has_one :consent, Consent.Accounts.Consent, on_replace: :update, on_delete: :delete_all
+    has_one :consent, ConsentSettings, on_replace: :update, on_delete: :delete_all
 
     timestamps()
   end

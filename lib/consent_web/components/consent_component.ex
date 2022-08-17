@@ -23,7 +23,6 @@ defmodule ConsentWeb.ConsentComponent do
       |> assign_new(:form_action, fn -> form_action end)
       |> assign_new(:learn_more_href, fn -> "/consent/more" end)
       |> assign_new(:return_to, fn -> "/" end)
-      |> assign_new(:header, fn -> Consent.Dialog.Header.builtin() end)
       |> assign(:csrf_token, Phoenix.HTML.Tag.csrf_token_value(form_action))
       |> assign_new(:id, fn -> "consent-modal" end)
       |> assign_new(:layout_id, fn -> "layout" end)

@@ -24,7 +24,7 @@ defmodule ConsentWeb.CookieConsentTest do
 
     assert %{value: signed_consent, max_age: max_age} = conn.resp_cookies[@consent_cookie]
     assert signed_consent != consent
-    assert max_age == 31_536_000
+    assert_in_delta max_age, 31_536_000, 100
   end
 
   test "writes a user consent cookie after user logs in", %{conn: conn} do
@@ -49,6 +49,6 @@ defmodule ConsentWeb.CookieConsentTest do
 
     assert %{value: signed_consent, max_age: max_age} = conn.resp_cookies[@consent_cookie]
     assert signed_consent != consent
-    assert max_age == 31_536_000
+    assert_in_delta max_age, 31_536_000, 100
   end
 end
