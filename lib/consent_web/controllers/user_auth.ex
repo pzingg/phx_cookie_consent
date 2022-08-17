@@ -19,7 +19,6 @@ defmodule ConsentWeb.UserAuth do
   @consent_max_age 3600 * 24 * 60
   @consent_cookie "_consent_web_cookie_consent"
   @consent_options [sign: true, max_age: @consent_max_age, same_site: "Lax"]
-
   def on_mount(:current_user, _params, session, socket) do
     {:cont,
      socket
@@ -74,6 +73,12 @@ defmodule ConsentWeb.UserAuth do
     conn
     |> consent_cookie_logic(conn.assigns[:current_user])
     |> process_cookie_logic()
+  end
+
+  def no_cookie_modal(conn, _opts) do
+    conn
+    |> put_session(:show_cookie_modal, false)
+    |> assign(:show_cookie_modal, false)
   end
 
   defp get_consent_status(nil, _now), do: :not_found

@@ -14,8 +14,23 @@ defmodule ConsentWeb.Router do
     plug :fetch_cookie_consent
   end
 
+  pipeline :static do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, {ConsentWeb.LayoutView, :root}
+    plug :no_cookie_modal
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  scope "/", ConsentWeb do
+    pipe_through :static
+
+    get "/terms", PageController, :terms
+    get "/privacy", PageController, :privacy
   end
 
   scope "/", ConsentWeb do

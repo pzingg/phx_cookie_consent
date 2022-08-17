@@ -8,19 +8,20 @@ defmodule Consent.Dialog.Terms do
     field :title, :string, virtual: true
     field :description, :string, virtual: true
     field :show, :boolean, virtual: true
-    field :version, :boolean
+    field :current_version, :string
+    field :version, :string
     field :consent_given, :boolean
   end
 
   def changeset(terms, attrs) do
+    attrs = Map.put(attrs, :current_version, current_version())
+
     terms
-    |> Ecto.Changeset.cast(attrs, [:version, :consent_given])
-    |> Ecto.Changeset.validate_required([:version, :consent_given])
+    |> Ecto.Changeset.cast(attrs, [:current_version, :version, :consent_given])
+    |> Ecto.Changeset.validate_required([:current_version, :version, :consent_given])
   end
 
-  def current_version() do
-    @current_terms_version
-  end
+  def current_version(), do: @current_terms_version
 
   def set_consent(terms, nil) do
     %__MODULE__{terms | show: false, version: current_version(), consent_given: true}
@@ -32,6 +33,7 @@ defmodule Consent.Dialog.Terms do
     %__MODULE__{
       terms
       | show: false,
+        current_version: version_to_set,
         version: version_to_set,
         consent_given: Version.compare(version, version_to_set) != :lt
     }

@@ -1,5 +1,5 @@
 defmodule ConsentWeb.ConsentView do
   use ConsentWeb, :view
 
-  alias ConsentWeb.ConsentComponent
+  import ConsentWeb.ConsentComponent
 end
