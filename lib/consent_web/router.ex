@@ -31,6 +31,7 @@ defmodule ConsentWeb.Router do
 
     get "/terms", PageController, :terms
     get "/privacy", PageController, :privacy
+    get "/cookies", PageController, :cookies
   end
 
   scope "/", ConsentWeb do

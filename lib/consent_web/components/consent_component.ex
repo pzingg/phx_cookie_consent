@@ -11,7 +11,7 @@ defmodule ConsentWeb.ConsentComponent do
 
   Required slot:
 
-  * `:header_slot`
+  * `:header`
 
   """
   def consent_summary(assigns) do
@@ -73,7 +73,7 @@ defmodule ConsentWeb.ConsentComponent do
                       <form action={@form_action} method="post" id={@form_id}>
                         <input name="_csrf_token" type="hidden" value={@csrf_token}>
 
-                        <%= for header <- @header_slot do %>
+                        <%= for header <- @header do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <h3 class="text-lg font-medium leading-6 text-gray-900"><%= header.title %></h3>
                           <div class="pb-2">
@@ -114,15 +114,15 @@ defmodule ConsentWeb.ConsentComponent do
   Alpine-JS only cookie consent modal component. Required assigns:
 
   * `:form_action`
-  * `:terms`
-  * `:groups`
+  * `:terms_agreement` - Map with `:version` (agreed to, or nil) and `:current_version`
+  * `:groups` - list of cookie group slugs agreed to.
   * `:show`
 
   Required slots:
 
-  * `:header_slot`
-  * `:terms_slot`
-  * `:group_slot` - one for each group
+  * `:header`
+  * `:terms`
+  * `:cookie_group` - one for each group
   """
   def consent_details(assigns) do
     assigns =
@@ -176,7 +176,7 @@ defmodule ConsentWeb.ConsentComponent do
                       <form action={@form_action} method="post" id={@form_id}>
                         <input name="_csrf_token" type="hidden" value={@csrf_token}>
 
-                        <%= for header <- @header_slot do %>
+                        <%= for header <- @header do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <h3 class="text-lg font-medium leading-6 text-gray-900"><%= header.title %></h3>
                           <div class="pb-2">
@@ -185,7 +185,7 @@ defmodule ConsentWeb.ConsentComponent do
                         </div>
                         <% end %>
 
-                        <%= for terms <- @terms_slot do %>
+                        <%= for terms <- @terms do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <div class="sm:flex sm:items-center sm:justify-between">
                             <h3 class="text-lg font-medium leading-6 text-gray-900"><%= terms.title %></h3>
@@ -204,7 +204,7 @@ defmodule ConsentWeb.ConsentComponent do
                         </div>
                         <% end %>
 
-                        <%= for group <- @group_slot do %>
+                        <%= for group <- @cookie_group do %>
                         <div class="pt-2 pb-2 border-t border-gray-200">
                           <div class="sm:flex sm:items-center sm:justify-between">
                             <div class="flex-initial w-96">

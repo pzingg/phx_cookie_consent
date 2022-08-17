@@ -3,14 +3,13 @@ defmodule ConsentWeb.ConsentController do
 
   require Logger
 
-  alias Consent.Dialog.{Header, Terms}
+  alias Consent.Dialog.Terms
   alias ConsentWeb.{ConsentHelpers, UserAuth}
 
   def edit_summary(conn, _params) do
     render(conn, "edit_summary.html",
       form_action: Routes.consent_path(conn, :update_summary),
       learn_more_href: Routes.consent_path(conn, :edit_details),
-      header: Header.builtin(),
       return_to: "/",
       show_event: "consent-modal-show"
     )
@@ -45,11 +44,9 @@ defmodule ConsentWeb.ConsentController do
     cookie_consent = get_session(conn, :cookie_consent)
 
     # cookie_consent.terms may be nil
-    terms = %{version: cookie_consent.terms, current_version: Terms.current_version()}
-
     render(conn, "edit_details.html",
       form_action: Routes.consent_path(conn, :update_details),
-      terms: terms,
+      terms_agreement: %{version: cookie_consent.terms, current_version: Terms.current_version()},
       groups: cookie_consent.groups,
       return_to: "/",
       show_event: "consent-modal-show"
