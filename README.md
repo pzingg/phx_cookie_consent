@@ -24,7 +24,7 @@ plug places the consent settings (with the key `:cookie_consent`)
 and the `:show_cookie_modal` boolean in the session and
 in the connection's assigns.
 
-For LiveViews, the `ConsentWeb.UserAuth.on_mount/4' mount function sets
+For LiveViews, the `ConsentWeb.UserAuth.on_mount/4` mount function sets
 assigns for the consent settings (with the key `:cookie_consent`)
 and the `:show_cookie_modal` boolean in the live socket.
 
