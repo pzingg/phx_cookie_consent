@@ -1,5 +1,8 @@
 import Config
 
+# or :gigalixir
+platform = :fly
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -14,12 +17,22 @@ if config_env() == :prod do
       For example: ecto://USER:PASS@HOST/DATABASE
       """
 
-  config :consent, Consent.Repo,
-    # ssl: true,
-    # IMPORTANT: Or it won't find the DB server
-    socket_options: [:inet6],
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+  case platform do
+    :fly ->
+      config :consent, Consent.Repo,
+        # ssl: true,
+        # IMPORTANT: Or it won't find the DB server
+        socket_options: [:inet6],
+        url: database_url,
+        pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10")
+
+    :gigalixir ->
+      config :consent, Consent.Repo,
+        adapter: Ecto.Adapters.Postgres,
+        url: System.get_env("DATABASE_URL"),
+        ssl: true,
+        pool_size: 2
+  end
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -33,31 +46,47 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
-  app_name =
-    System.get_env("FLY_APP_NAME") ||
-      raise "FLY_APP_NAME not available"
-
-  config :consent, ConsentWeb.Endpoint,
-    url: [host: "#{app_name}.fly.dev", port: 80],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/plug_cowboy/Plug.Cowboy.html
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
-      port: String.to_integer(System.get_env("PORT") || "4000")
-    ],
-    secret_key_base: secret_key_base
-
   # ## Using releases
   #
   # If you are doing OTP releases, you need to instruct Phoenix
-  # to start each relevant endpoint:
-  #
-  config :consent, ConsentWeb.Endpoint, server: true
-
+  # to start each relevant endpoint by setting `server: true`.
   # Then you can assemble a release by calling `mix release`.
   # See `mix help release` for more information.
+
+  case platform do
+    :fly ->
+      app_name =
+        System.get_env("FLY_APP_NAME") ||
+          raise "environment variable FLY_APP_NAME is missing."
+
+      config :consent, ConsentWeb.Endpoint,
+        url: [host: "#{app_name}.fly.dev", port: 80],
+        http: [
+          # Enable IPv6 and bind on all interfaces.
+          # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
+          # See the documentation on https://hexdocs.pm/plug_cowboy/Plug.Cowboy.html
+          # for details about using IPv6 vs IPv4 and loopback vs public addresses.
+          ip: {0, 0, 0, 0, 0, 0, 0, 0},
+          port: String.to_integer(System.get_env("PORT") || "4000")
+        ],
+        secret_key_base: secret_key_base,
+        server: true
+
+    :gigalixir ->
+      app_name =
+        System.get_env("APP_NAME") ||
+          raise "environment variable APP_NAME is missing."
+
+      # Gigalixir Free Tier configuration
+      # See https://gigalixir.readthedocs.io/en/latest/modify-app/index.html
+      # Free tier db only allows 4 connections. Rolling deploys need pool_size*(n+1) connections where n is the number of app replicas.
+      config :consent, ConsentWeb.Endpoint,
+        url: [host: "#{app_name}.gigalixirapp.com", port: 443],
+        # Possibly not needed, but doesn't hurt
+        http: [port: {:system, "PORT"}],
+        secret_key_base: secret_key_base,
+        server: true
+  end
 
   # ## Configuring the mailer
   #
