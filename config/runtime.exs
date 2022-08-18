@@ -81,7 +81,7 @@ if config_env() == :prod do
       # See https://gigalixir.readthedocs.io/en/latest/modify-app/index.html
       # Free tier db only allows 4 connections. Rolling deploys need pool_size*(n+1) connections where n is the number of app replicas.
       config :consent, ConsentWeb.Endpoint,
-        url: [host: app_name <> ".gigalixirapp.com", port: 443],
+        url: [host: "#{app_name}.gigalixirapp.com", port: 443],
         # Possibly not needed, but doesn't hurt
         http: [port: {:system, "PORT"}],
         secret_key_base: secret_key_base,
