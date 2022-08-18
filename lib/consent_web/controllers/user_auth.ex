@@ -62,6 +62,43 @@ defmodule ConsentWeb.UserAuth do
   end
 
   @doc """
+  This should be called AFTER a redirect, so that scripts are disabled.
+
+  Returns a tuple of the conn and the total number of cookies deleted.
+  """
+  def drop_cookies(conn, %ConsentSettings{groups: groups}) do
+    Logger.debug("dropping cookies")
+
+    all = ConsentSettings.all_groups() |> MapSet.new()
+    now = groups |> MapSet.new()
+
+    matchers =
+      MapSet.difference(all, now)
+      |> MapSet.to_list()
+      |> Enum.reduce([], fn group, acc -> acc ++ cookie_matchers(group) end)
+
+    conn = conn |> fetch_cookies()
+
+    conn.cookies
+    |> Enum.reduce({conn, 0}, fn {name, _value}, acc ->
+      Enum.reduce(matchers, acc, fn {match_fn, opts}, {conn1, count} = acc1 ->
+        if match_fn.(name) do
+          Logger.debug("deleting #{name} with opts #{inspect(opts)}")
+          {delete_resp_cookie(conn1, name, opts), count + 1}
+        else
+          acc1
+        end
+      end)
+    end)
+  end
+
+  def cookie_matchers("functional") do
+    [{fn name -> name =~ ~r/^_ga(_.+)?/ end, []}]
+  end
+
+  def cookie_matchers(_group), do: []
+
+  @doc """
   Picks up the user's cookie consent, or loads one from
   session cookies. Can assign nil, meaning a cookie modal
   should be presented.
@@ -245,6 +282,7 @@ defmodule ConsentWeb.UserAuth do
     |> put_session(:cookie_consent, consent)
     |> put_session(:show_cookie_modal, show_cookie_modal)
     |> assign(:show_cookie_modal, show_cookie_modal)
+    |> assign(:cookie_groups, consent.groups)
   end
 
   defp assign_cookie_consent(socket, session) do

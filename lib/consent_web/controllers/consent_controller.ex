@@ -28,8 +28,8 @@ defmodule ConsentWeb.ConsentController do
 
         conn
         |> UserAuth.write_consent_cookie(consent)
-        |> put_flash(:info, "Cookie preferences were saved in a cookie successfully.")
-        |> redirect(to: "/")
+        |> put_flash(:info, "Cookie preferences were updated successfully.")
+        |> redirect(to: Routes.consent_path(conn, :drop_cookies))
         |> halt()
 
       {:error, _reason_or_changeset} ->
@@ -64,8 +64,8 @@ defmodule ConsentWeb.ConsentController do
       {:ok, consent} ->
         conn
         |> UserAuth.write_consent_cookie(consent)
-        |> put_flash(:info, "Cookie preferences were saved in a cookie successfully.")
-        |> redirect(to: "/")
+        |> put_flash(:info, "Cookie preferences were updated successfully.")
+        |> redirect(to: Routes.consent_path(conn, :drop_cookies))
         |> halt()
 
       {:error, _changeset} ->
@@ -74,5 +74,22 @@ defmodule ConsentWeb.ConsentController do
         |> redirect(to: "/")
         |> halt()
     end
+  end
+
+  def drop_cookies(conn, _params) do
+    consent = get_session(conn, :cookie_consent)
+    {conn, count} = UserAuth.drop_cookies(conn, consent)
+
+    msg =
+      case count do
+        0 -> ""
+        1 -> " and 1 cookie was removed"
+        _ -> " and #{count} cookies were removed"
+      end
+
+    conn
+    |> put_flash(:info, "Cookie preferences were updated successfully#{msg}.")
+    |> redirect(to: "/")
+    |> halt()
   end
 end

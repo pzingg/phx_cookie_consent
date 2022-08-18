@@ -47,6 +47,7 @@ defmodule ConsentWeb.Router do
     post "/consent", ConsentController, :update_summary
     get "/consent/more", ConsentController, :edit_details
     post "/consent/more", ConsentController, :update_details
+    get "/consent/drop_cookies", ConsentController, :drop_cookies
   end
 
   # Other scopes may use custom stacks.
