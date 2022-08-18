@@ -1,7 +1,7 @@
 defmodule ConsentWeb.LayoutView do
   use ConsentWeb, :view
 
-  import ConsentWeb.ConsentComponent
+  import ConsentWeb.{CookieScriptComponent, ConsentComponent}
 
   # Phoenix LiveDashboard is available only in development by default,
   # so we instruct Elixir to not warn if the dashboard route is missing.
