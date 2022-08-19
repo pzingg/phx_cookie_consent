@@ -29,7 +29,12 @@ assigns for the consent settings (with the key `:cookie_consent`)
 and the `:show_cookie_modal` boolean in the live socket.
 
 Updating of the consent settings is done by the routes in the non-LiveView
-`ConsentController`.
+`ConsentController`, which also exposes a route that is used to delete the 
+cookies in any group disallowed by the user.
+
+The example app also shows how the consent settings are used to nullify `<script>`
+elements that would set Javascript cookies for groups that the user
+has disallowed.
 
 ## Cookie consent components
 
